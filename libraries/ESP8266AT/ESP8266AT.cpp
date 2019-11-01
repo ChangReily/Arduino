@@ -20,26 +20,6 @@
  */
 #include "ESP8266AT.h"
 
-#define LOG_OUTPUT_DEBUG            (1)
-#define LOG_OUTPUT_DEBUG_PREFIX     (1)
-
-#define logDebug(arg)\
-    do {\
-        if (LOG_OUTPUT_DEBUG)\
-        {\
-            if (LOG_OUTPUT_DEBUG_PREFIX)\
-            {\
-                Serial.print("[LOG Debug: ");\
-                Serial.print((const char*)__FILE__);\
-                Serial.print(",");\
-                Serial.print((unsigned int)__LINE__);\
-                Serial.print(",");\
-                Serial.print((const char*)__FUNCTION__);\
-                Serial.print("] ");\
-            }\
-            Serial.print(arg);\
-        }\
-    } while(0)
 
 #ifdef ESP8266AT_USE_SOFTWARE_SERIAL
 ESP8266AT::ESP8266AT(SoftwareSerial &uart, uint32_t baud): m_puart(&uart)
@@ -492,7 +472,7 @@ bool ESP8266AT::eATGMR(String &version)
 {
     rx_empty();
     m_puart->println("AT+GMR");
-    return recvFindAndFilter("OK", "\r\r\n", "\r\n\r\nOK", version); 
+    return recvFindAndFilter("OK", "\r\n", "\r\nOK", version); 
 }
 
 bool ESP8266AT::qATCWMODE(uint8_t *mode) 
