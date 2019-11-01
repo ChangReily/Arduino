@@ -10,7 +10,9 @@ void setup(void)
 
     Serial.print("== Checks Version Information ==\n");
     Serial.println(Esp01.getVersion());
-
+    
+    Serial.print("\n== UART Configuration ==\n");
+    Serial.println(Esp01.getUartConfiguration());
 }
 
 void loop(void)

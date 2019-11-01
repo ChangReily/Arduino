@@ -66,6 +66,12 @@ String ESP8266AT::getVersion(void)
     return version;
 }
 
+String ESP8266AT::getUartConfiguration(void)
+{
+    String UartConfig;
+    eATUART(UartConfig);
+    return UartConfig;
+}
 
 bool ESP8266AT::setOprToStation(void)
 {
@@ -475,6 +481,18 @@ bool ESP8266AT::eATGMR(String &version)
     return recvFindAndFilter("OK", "\r\n", "\r\nOK", version); 
 }
 
+bool ESP8266AT::eATUART(String &UartConfig)
+{
+    // bool ReturnValue;
+    // rx_empty();
+    // m_puart->println("AT+UART?");
+    // ReturnValue = recvFindAndFilter("OK", "\r\n", "\r\nOK", UartConfig); 
+    // UartConfig = "Cmd: AT+UART?\n" + UartConfig;
+    // return ReturnValue;
+    rx_empty();
+    m_puart->println("AT+UART?");
+    return recvFindAndFilter("OK", "\r\n", "\r\nOK", UartConfig); 
+}
 bool ESP8266AT::qATCWMODE(uint8_t *mode) 
 {
     String str_mode;

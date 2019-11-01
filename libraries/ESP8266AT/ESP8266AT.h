@@ -87,6 +87,13 @@ class ESP8266AT {
      * @return the string of version. 
      */
     String getVersion(void);
+	
+	/**
+     * Get UART Configuration of AT Command Set. 
+     * 
+     * @return the string of version. 
+     */
+    String getUartConfiguration(void);
     
     /**
      * Set operation mode to staion. 
@@ -442,7 +449,8 @@ class ESP8266AT {
     bool eAT(void);
     bool eATRST(void);
     bool eATGMR(String &version);
-    
+    bool eATUART(String &UartConfig);
+	
     bool qATCWMODE(uint8_t *mode);
     bool sATCWMODE(uint8_t mode);
     bool sATCWJAP(String ssid, String pwd);
