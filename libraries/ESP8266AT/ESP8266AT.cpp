@@ -44,6 +44,8 @@
 #ifdef ESP8266AT_USE_SOFTWARE_SERIAL
 ESP8266AT::ESP8266AT(SoftwareSerial &uart, uint32_t baud): m_puart(&uart)
 {
+    // Serial.begin(115200);
+    // Serial.print("Init Arduino Serial port");
     m_puart->begin(baud);
     rx_empty();
 }
@@ -390,7 +392,7 @@ String ESP8266AT::recvString(String target, uint32_t timeout)
     while (millis() - start < timeout) {
         while(m_puart->available() > 0) {
             a = m_puart->read();
-			if(a == '\0') continue;
+            if(a == '\0') continue;
             data += a;
         }
         if (data.indexOf(target) != -1) {
@@ -408,7 +410,7 @@ String ESP8266AT::recvString(String target1, String target2, uint32_t timeout)
     while (millis() - start < timeout) {
         while(m_puart->available() > 0) {
             a = m_puart->read();
-			if(a == '\0') continue;
+            if(a == '\0') continue;
             data += a;
         }
         if (data.indexOf(target1) != -1) {
@@ -428,7 +430,7 @@ String ESP8266AT::recvString(String target1, String target2, String target3, uin
     while (millis() - start < timeout) {
         while(m_puart->available() > 0) {
             a = m_puart->read();
-			if(a == '\0') continue;
+            if(a == '\0') continue;
             data += a;
         }
         if (data.indexOf(target1) != -1) {
@@ -456,6 +458,9 @@ bool ESP8266AT::recvFindAndFilter(String target, String begin, String end, Strin
 {
     String data_tmp;
     data_tmp = recvString(target, timeout);
+    // Serial.println("==========");
+    // Serial.println(data_tmp);
+    // Serial.println("==========");
     if (data_tmp.indexOf(target) != -1) {
         int32_t index1 = data_tmp.indexOf(begin);
         int32_t index2 = data_tmp.indexOf(end);
@@ -541,12 +546,12 @@ bool ESP8266AT::sATCWJAP(String ssid, String pwd)
 
 bool ESP8266AT::sATCWDHCP(uint8_t mode, boolean enabled)
 {
-	String strEn = "0";
-	if (enabled) {
-		strEn = "1";
-	}
-	
-	
+    String strEn = "0";
+    if (enabled) {
+        strEn = "1";
+    }
+    
+    
     String data;
     rx_empty();
     m_puart->print("AT+CWDHCP=");
