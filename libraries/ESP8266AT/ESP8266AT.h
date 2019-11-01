@@ -1,6 +1,6 @@
 /**
- * @file ESP8266.h
- * @brief The definition of class ESP8266. 
+ * @file ESP8266AT.h
+ * @brief The definition of class ESP8266AT. 
  * @author Wu Pengfei<pengfei.wu@itead.cc> 
  * @date 2015.02
  * 
@@ -18,8 +18,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifndef __ESP8266_H__
-#define __ESP8266_H__
+#ifndef __ESP8266AT_H__
+#define __ESP8266AT_H__
 
 #include "Arduino.h"
 
@@ -27,44 +27,44 @@
 //#define ESP8266_USE_SOFTWARE_SERIAL
 
 
-#ifdef ESP8266_USE_SOFTWARE_SERIAL
+#ifdef ESP8266AT_USE_SOFTWARE_SERIAL
 #include "SoftwareSerial.h"
 #endif
 
 
 /**
- * Provide an easy-to-use way to manipulate ESP8266. 
+ * Provide an easy-to-use way to manipulate ESP8266AT. 
  */
-class ESP8266 {
+class ESP8266AT {
  public:
 
-#ifdef ESP8266_USE_SOFTWARE_SERIAL
+#ifdef ESP8266AT_USE_SOFTWARE_SERIAL
     /*
      * Constuctor. 
      *
      * @param uart - an reference of SoftwareSerial object. 
-     * @param baud - the buad rate to communicate with ESP8266(default:9600). 
+     * @param baud - the buad rate to communicate with ESP8266AT(default:9600). 
      *
      * @warning parameter baud depends on the AT firmware. 9600 is an common value. 
      */
-    ESP8266(SoftwareSerial &uart, uint32_t baud = 9600);
+    ESP8266AT(SoftwareSerial &uart, uint32_t baud = 9600);
 #else /* HardwareSerial */
     /*
      * Constuctor. 
      *
      * @param uart - an reference of HardwareSerial object. 
-     * @param baud - the buad rate to communicate with ESP8266(default:9600). 
+     * @param baud - the buad rate to communicate with ESP8266AT(default:9600). 
      *
      * @warning parameter baud depends on the AT firmware. 9600 is an common value. 
      */
-    ESP8266(HardwareSerial &uart, uint32_t baud = 9600);
+    ESP8266AT(HardwareSerial &uart, uint32_t baud = 9600);
 #endif
     
     
     /** 
-     * Verify ESP8266 whether live or not. 
+     * Verify ESP8266AT whether live or not. 
      *
-     * Actually, this method will send command "AT" to ESP8266 and waiting for "OK". 
+     * Actually, this method will send command "AT" to ESP8266AT and waiting for "OK". 
      * 
      * @retval true - alive.
      * @retval false - dead.
@@ -72,7 +72,7 @@ class ESP8266 {
     bool kick(void);
     
     /**
-     * Restart ESP8266 by "AT+RST". 
+     * Restart ESP8266AT by "AT+RST". 
      *
      * This method will take 3 seconds or more. 
      *
@@ -179,7 +179,7 @@ class ESP8266 {
     String getIPStatus(void);
     
     /**
-     * Get the IP address of ESP8266. 
+     * Get the IP address of ESP8266AT. 
      *
      * @return the IP list. 
      */
@@ -469,12 +469,12 @@ class ESP8266 {
      * +IPD,id,len:data
      */
     
-#ifdef ESP8266_USE_SOFTWARE_SERIAL
-    SoftwareSerial *m_puart; /* The UART to communicate with ESP8266 */
+#ifdef ESP8266AT_USE_SOFTWARE_SERIAL
+    SoftwareSerial *m_puart; /* The UART to communicate with ESP8266AT */
 #else
-    HardwareSerial *m_puart; /* The UART to communicate with ESP8266 */
+    HardwareSerial *m_puart; /* The UART to communicate with ESP8266AT */
 #endif
 };
 
-#endif /* #ifndef __ESP8266_H__ */
+#endif /* #ifndef __ESP8266AT_H__ */
 
