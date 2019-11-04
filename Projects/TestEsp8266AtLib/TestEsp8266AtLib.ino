@@ -13,6 +13,14 @@ void setup(void)
     
     Serial.print("\n== UART Configuration ==\n");
     Serial.println(Esp01.getUartConfiguration());
+
+    Serial.print("\n== Get Current AP ==\n");
+    Serial.println(Esp01.getCurrentAp());
+
+//    Esp01.setOprToStation();
+//
+//    Serial.print("\n== Get AP List ==\n");
+//    Serial.println(Esp01.getAPList());
 }
 
 void loop(void)

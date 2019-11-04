@@ -73,6 +73,14 @@ String ESP8266AT::getUartConfiguration(void)
     return UartConfig;
 }
 
+String ESP8266AT::getCurrentAp(void)
+{
+    String CurrentAp;
+    qATCWJAPCUR(CurrentAp);
+    return CurrentAp;
+}
+
+
 bool ESP8266AT::setOprToStation(void)
 {
     uint8_t mode;
@@ -493,6 +501,14 @@ bool ESP8266AT::eATUART(String &UartConfig)
     m_puart->println("AT+UART?");
     return recvFindAndFilter("OK", "\r\n", "\r\nOK", UartConfig); 
 }
+
+bool ESP8266AT::qATCWJAPCUR(String &CurrentAp)
+{
+    rx_empty();
+    m_puart->println("AT+CWJAP_CUR?");
+    return recvFindAndFilter("OK", "\r\n", "\r\nOK", CurrentAp); 
+}
+
 bool ESP8266AT::qATCWMODE(uint8_t *mode) 
 {
     String str_mode;
@@ -569,7 +585,7 @@ bool ESP8266AT::eATCWLAP(String &list)
     String data;
     rx_empty();
     m_puart->println("AT+CWLAP");
-    return recvFindAndFilter("OK", "\r\r\n", "\r\n\r\nOK", list, 10000);
+    return recvFindAndFilter("OK", "AT+CWLAP\n", "\n", list, 10000);
 }
 
 bool ESP8266AT::eATCWQAP(void)

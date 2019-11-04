@@ -95,6 +95,13 @@ class ESP8266AT {
      */
     String getUartConfiguration(void);
     
+	/**
+     * Query Connects AP of AT Command Set. 
+     * 
+     * @return the string of version. 
+     */
+    String getCurrentAp(void);
+    
     /**
      * Set operation mode to staion. 
      * 
@@ -450,6 +457,7 @@ class ESP8266AT {
     bool eATRST(void);
     bool eATGMR(String &version);
     bool eATUART(String &UartConfig);
+	bool qATCWJAPCUR(String &CurrentAp);
 	
     bool qATCWMODE(uint8_t *mode);
     bool sATCWMODE(uint8_t mode);
