@@ -25,11 +25,11 @@ String ESP8266AT::ExecATGMR(void)
     String version;
     rx_empty();
     m_puart->println("AT+GMR");
-	if (recvFindAndFilter("OK", "\r\n", "\r\nOK", version)){
-		return version;
-	} else {
-		return "None";
-	}   
+    if (recvFindAndFilter("OK", "\r\n", "\r\nOK", version)){
+        return version;
+    } else {
+        return "None";
+    }   
 }
 
 String ESP8266AT::QueryATUARTCUR(void)
@@ -37,11 +37,11 @@ String ESP8266AT::QueryATUARTCUR(void)
     String UartConfig;
     rx_empty();
     m_puart->println("AT+UART_CUR?");
-	if (recvFindAndFilter("OK", "\r\n", "\r\nOK", UartConfig)){
-		return UartConfig;
-	} else {
-		return "None";
-	}   
+    if (recvFindAndFilter("OK", "\r\n", "\r\nOK", UartConfig)){
+        return UartConfig;
+    } else {
+        return "None";
+    }   
 }
 
 String ESP8266AT::QueryATCWMODECUR(void)
@@ -49,11 +49,11 @@ String ESP8266AT::QueryATCWMODECUR(void)
     String WifiMode;
     rx_empty();
     m_puart->println("AT+CWMODE_CUR?");
-	if (recvFindAndFilter("OK", "\r\n", "\r\n\r\nOK", WifiMode)){
-		return WifiMode;
-	} else {
-		return "None";
-	}   
+    if (recvFindAndFilter("OK", "\r\n", "\r\n\r\nOK", WifiMode)){
+        return WifiMode;
+    } else {
+        return "None";
+    }   
 }
 
 String ESP8266AT::QueryATCWJAPCUR(void)
@@ -61,11 +61,11 @@ String ESP8266AT::QueryATCWJAPCUR(void)
     String WifiMode;
     rx_empty();
     m_puart->println("AT+CWJAP_CUR?");
-	if (recvFindAndFilter("OK", "\r\n", "\r\n\r\nOK", WifiMode)){
-		return WifiMode;
-	} else {
-		return "None";
-	}   
+    if (recvFindAndFilter("OK", "\r\n", "\r\n\r\nOK", WifiMode)){
+        return WifiMode;
+    } else {
+        return "None";
+    }   
 }
 
 String ESP8266AT::QueryATCIPSNTPCFG(void)
@@ -73,22 +73,22 @@ String ESP8266AT::QueryATCIPSNTPCFG(void)
     String SntpConfig;
     rx_empty();
     m_puart->println("AT+CIPSNTPCFG?");
-	if (recvFindAndFilter("OK", "\r\n", "\r\n\r\nOK", SntpConfig)){
-		return SntpConfig;
-	} else {
-		return "None";
-	}   
+    if (recvFindAndFilter("OK", "\r\n", "\r\n\r\nOK", SntpConfig)){
+        return SntpConfig;
+    } else {
+        return "None";
+    }   
 }
 
 String ESP8266AT::SetATCIPSNTPCFG(void)
 {
     rx_empty();
     m_puart->println("AT+CIPSNTPCFG=1,8,\"cn.ntp.org.cn\",\"ntp.sjtu.edu.cn\",\"us.pool.ntp.org\"");
-	if (recvFind("OK")){
-		return "OK";
-	} else {
-		return "None";
-	}   
+    if (recvFind("OK")){
+        return "OK";
+    } else {
+        return "None";
+    }   
 }
 
 
@@ -97,11 +97,11 @@ String ESP8266AT::QueryATCIPSNTPTIME(void)
     String SntpTime;
     rx_empty();
     m_puart->println("AT+CIPSNTPTIME?");
-	if (recvFindAndFilter("OK", "\r\n", "\n\r\nOK", SntpTime)){
-		return SntpTime;
-	} else {
-		return "None";
-	}   
+    if (recvFindAndFilter("OK", "\r\n", "\n\r\nOK", SntpTime)){
+        return SntpTime;
+    } else {
+        return "None";
+    }   
 }
 
 String ESP8266AT::GetSntpTime(void)
@@ -109,16 +109,43 @@ String ESP8266AT::GetSntpTime(void)
     String SntpTime;
     rx_empty();
     m_puart->println("AT+CIPSNTPTIME?");
-	if (recvFindAndFilter("OK", "CIPSNTPTIME:", "\n\r\nOK", SntpTime)){
-		return SntpTime;
-	} else {
-		return "None";
-	}   
+    if (recvFindAndFilter("OK", "CIPSNTPTIME:", "\n\r\nOK", SntpTime)){
+        TransferTimeFormat(SntpTime);
+        return SntpTime;
+    } else {
+        return "None";
+    }   
 }
 // 
 /*----------------------------------------------------------------------------*/
 /* +IPD,<id>,<len>:<data> */
 /* +IPD,<len>:<data> */
+
+void ESP8266AT::TransferTimeFormat(String &SntpTime)
+{
+    String  MonthStr;
+    String MonthTable[12][2]={{"Jan", "01"},
+                    {"Feb", "02"},
+                    {"Mar", "03"},
+                    {"Apr", "04"},
+                    {"May", "05"},
+                    {"Jun", "06"},
+                    {"Jul", "07"},
+                    {"Aug", "08"},
+                    {"Sep", "09"},
+                    {"Oct", "10"},
+                    {"Nov", "11"},
+                    {"Dec", "12"}};
+    for (int Index=0; Index<12; Index++){
+        if (SntpTime.substring(4, 7) == MonthTable[Index][0]){
+            MonthStr=MonthTable[Index][1];
+            break;
+        }
+    }
+    
+    SntpTime=SntpTime.substring(20, 24)+"/"+MonthStr+"/"+SntpTime.substring(8, 10)+" "+SntpTime.substring(11, 13)+":"+SntpTime.substring(14, 16)+":"+SntpTime.substring(17, 19)+" "+SntpTime.substring(0, 3);
+  
+}
 
 void ESP8266AT::rx_empty(void) 
 {

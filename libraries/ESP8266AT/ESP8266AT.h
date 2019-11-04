@@ -120,6 +120,11 @@ class ESP8266AT {
  private:
 
     /* 
+    * Transfer SNTP Time String Format.
+    /
+    void TransferTimeFormat(String &SntpTime);
+
+    /* 
      * Empty the buffer or UART RX.
      */
     void rx_empty(void);
