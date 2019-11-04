@@ -144,11 +144,6 @@ bool ESP8266AT::joinAP(String ssid, String pwd)
     return sATCWJAP(ssid, pwd);
 }
 
-bool ESP8266AT::enableClientDHCP(uint8_t mode, boolean enabled)
-{
-    return sATCWDHCP(mode, enabled);
-}
-
 bool ESP8266AT::leaveAP(void)
 {
     return eATCWQAP();
@@ -188,107 +183,6 @@ bool ESP8266AT::enableMUX(void)
 bool ESP8266AT::disableMUX(void)
 {
     return sATCIPMUX(0);
-}
-
-bool ESP8266AT::createTCP(String addr, uint32_t port)
-{
-    return sATCIPSTARTSingle("TCP", addr, port);
-}
-
-bool ESP8266AT::releaseTCP(void)
-{
-    return eATCIPCLOSESingle();
-}
-
-bool ESP8266AT::registerUDP(String addr, uint32_t port)
-{
-    return sATCIPSTARTSingle("UDP", addr, port);
-}
-
-bool ESP8266AT::unregisterUDP(void)
-{
-    return eATCIPCLOSESingle();
-}
-
-bool ESP8266AT::createTCP(uint8_t mux_id, String addr, uint32_t port)
-{
-    return sATCIPSTARTMultiple(mux_id, "TCP", addr, port);
-}
-
-bool ESP8266AT::releaseTCP(uint8_t mux_id)
-{
-    return sATCIPCLOSEMulitple(mux_id);
-}
-
-bool ESP8266AT::registerUDP(uint8_t mux_id, String addr, uint32_t port)
-{
-    return sATCIPSTARTMultiple(mux_id, "UDP", addr, port);
-}
-
-bool ESP8266AT::unregisterUDP(uint8_t mux_id)
-{
-    return sATCIPCLOSEMulitple(mux_id);
-}
-
-bool ESP8266AT::setTCPServerTimeout(uint32_t timeout)
-{
-    return sATCIPSTO(timeout);
-}
-
-bool ESP8266AT::startTCPServer(uint32_t port)
-{
-    if (sATCIPSERVER(1, port)) {
-        return true;
-    }
-    return false;
-}
-
-bool ESP8266AT::stopTCPServer(void)
-{
-    sATCIPSERVER(0);
-    restart();
-    return false;
-}
-
-bool ESP8266AT::startServer(uint32_t port)
-{
-    return startTCPServer(port);
-}
-
-bool ESP8266AT::stopServer(void)
-{
-    return stopTCPServer();
-}
-
-bool ESP8266AT::send(const uint8_t *buffer, uint32_t len)
-{
-    return sATCIPSENDSingle(buffer, len);
-}
-
-bool ESP8266AT::send(uint8_t mux_id, const uint8_t *buffer, uint32_t len)
-{
-    return sATCIPSENDMultiple(mux_id, buffer, len);
-}
-
-uint32_t ESP8266AT::recv(uint8_t *buffer, uint32_t buffer_size, uint32_t timeout)
-{
-    return recvPkg(buffer, buffer_size, NULL, timeout, NULL);
-}
-
-uint32_t ESP8266AT::recv(uint8_t mux_id, uint8_t *buffer, uint32_t buffer_size, uint32_t timeout)
-{
-    uint8_t id;
-    uint32_t ret;
-    ret = recvPkg(buffer, buffer_size, NULL, timeout, &id);
-    if (ret > 0 && id == mux_id) {
-        return ret;
-    }
-    return 0;
-}
-
-uint32_t ESP8266AT::recv(uint8_t *coming_mux_id, uint8_t *buffer, uint32_t buffer_size, uint32_t timeout)
-{
-    return recvPkg(buffer, buffer_size, NULL, timeout, coming_mux_id);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -558,28 +452,6 @@ bool ESP8266AT::sATCWJAP(String ssid, String pwd)
     return false;
 }
 
-bool ESP8266AT::sATCWDHCP(uint8_t mode, boolean enabled)
-{
-    String strEn = "0";
-    if (enabled) {
-        strEn = "1";
-    }
-    
-    
-    String data;
-    rx_empty();
-    m_puart->print("AT+CWDHCP=");
-    m_puart->print(strEn);
-    m_puart->print(",");
-    m_puart->println(mode);
-    
-    data = recvString("OK", "FAIL", 10000);
-    if (data.indexOf("OK") != -1) {
-        return true;
-    }
-    return false;
-}
-
 bool ESP8266AT::eATCWLAP(String &list)
 {
     String data;
@@ -631,91 +503,7 @@ bool ESP8266AT::eATCIPSTATUS(String &list)
     m_puart->println("AT+CIPSTATUS");
     return recvFindAndFilter("OK", "\r\r\n", "\r\n\r\nOK", list);
 }
-bool ESP8266AT::sATCIPSTARTSingle(String type, String addr, uint32_t port)
-{
-    String data;
-    rx_empty();
-    m_puart->print("AT+CIPSTART=\"");
-    m_puart->print(type);
-    m_puart->print("\",\"");
-    m_puart->print(addr);
-    m_puart->print("\",");
-    m_puart->println(port);
-    
-    data = recvString("OK", "ERROR", "ALREADY CONNECT", 10000);
-    if (data.indexOf("OK") != -1 || data.indexOf("ALREADY CONNECT") != -1) {
-        return true;
-    }
-    return false;
-}
-bool ESP8266AT::sATCIPSTARTMultiple(uint8_t mux_id, String type, String addr, uint32_t port)
-{
-    String data;
-    rx_empty();
-    m_puart->print("AT+CIPSTART=");
-    m_puart->print(mux_id);
-    m_puart->print(",\"");
-    m_puart->print(type);
-    m_puart->print("\",\"");
-    m_puart->print(addr);
-    m_puart->print("\",");
-    m_puart->println(port);
-    
-    data = recvString("OK", "ERROR", "ALREADY CONNECT", 10000);
-    if (data.indexOf("OK") != -1 || data.indexOf("ALREADY CONNECT") != -1) {
-        return true;
-    }
-    return false;
-}
-bool ESP8266AT::sATCIPSENDSingle(const uint8_t *buffer, uint32_t len)
-{
-    rx_empty();
-    m_puart->print("AT+CIPSEND=");
-    m_puart->println(len);
-    if (recvFind(">", 5000)) {
-        rx_empty();
-        for (uint32_t i = 0; i < len; i++) {
-            m_puart->write(buffer[i]);
-        }
-        return recvFind("SEND OK", 10000);
-    }
-    return false;
-}
-bool ESP8266AT::sATCIPSENDMultiple(uint8_t mux_id, const uint8_t *buffer, uint32_t len)
-{
-    rx_empty();
-    m_puart->print("AT+CIPSEND=");
-    m_puart->print(mux_id);
-    m_puart->print(",");
-    m_puart->println(len);
-    if (recvFind(">", 5000)) {
-        rx_empty();
-        for (uint32_t i = 0; i < len; i++) {
-            m_puart->write(buffer[i]);
-        }
-        return recvFind("SEND OK", 10000);
-    }
-    return false;
-}
-bool ESP8266AT::sATCIPCLOSEMulitple(uint8_t mux_id)
-{
-    String data;
-    rx_empty();
-    m_puart->print("AT+CIPCLOSE=");
-    m_puart->println(mux_id);
-    
-    data = recvString("OK", "link is not", 5000);
-    if (data.indexOf("OK") != -1 || data.indexOf("link is not") != -1) {
-        return true;
-    }
-    return false;
-}
-bool ESP8266AT::eATCIPCLOSESingle(void)
-{
-    rx_empty();
-    m_puart->println("AT+CIPCLOSE");
-    return recvFind("OK", 5000);
-}
+
 bool ESP8266AT::eATCIFSR(String &list)
 {
     rx_empty();
@@ -735,30 +523,3 @@ bool ESP8266AT::sATCIPMUX(uint8_t mode)
     }
     return false;
 }
-bool ESP8266AT::sATCIPSERVER(uint8_t mode, uint32_t port)
-{
-    String data;
-    if (mode) {
-        rx_empty();
-        m_puart->print("AT+CIPSERVER=1,");
-        m_puart->println(port);
-        
-        data = recvString("OK", "no change");
-        if (data.indexOf("OK") != -1 || data.indexOf("no change") != -1) {
-            return true;
-        }
-        return false;
-    } else {
-        rx_empty();
-        m_puart->println("AT+CIPSERVER=0");
-        return recvFind("\r\r\n");
-    }
-}
-bool ESP8266AT::sATCIPSTO(uint32_t timeout)
-{
-    rx_empty();
-    m_puart->print("AT+CIPSTO=");
-    m_puart->println(timeout);
-    return recvFind("OK");
-}
-
