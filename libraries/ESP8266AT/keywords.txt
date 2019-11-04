@@ -1,0 +1,31 @@
+#######################################
+# Syntax Coloring Map
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+ESP8266AT	KEYWORD1
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+# AT Command
+#--------------------------------------
+ExecATGMR	KEYWORD2
+QueryATUARTCUR	KEYWORD2
+QueryATCWMODECUR	KEYWORD2
+QueryATCWJAPCUR	KEYWORD2
+SetATCIPSNTPCFG	KEYWORD2
+QueryATCIPSNTPCFG	KEYWORD2
+QueryATCIPSNTPTIME	KEYWORD2
+#--------------------------------------
+# AT Fucntions
+#--------------------------------------
+GetSntpTime	KEYWORD2
+#######################################
+# Instances (KEYWORD2)
+#######################################
+
+#######################################
+# Constants (LITERAL1)
+#######################################
