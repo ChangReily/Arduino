@@ -123,7 +123,6 @@ String ESP8266AT::GetSntpTime(void)
 
 void ESP8266AT::TransferTimeFormat(String &SntpTime)
 {
-    String  MonthStr;
     String MonthTable[12][2]={{"Jan", "01"},
                     {"Feb", "02"},
                     {"Mar", "03"},
@@ -138,12 +137,11 @@ void ESP8266AT::TransferTimeFormat(String &SntpTime)
                     {"Dec", "12"}};
     for (int Index=0; Index<12; Index++){
         if (SntpTime.substring(4, 7) == MonthTable[Index][0]){
-            MonthStr=MonthTable[Index][1];
+			SntpTime.replace(MonthTable[Index][0], MonthTable[Index][1]);
             break;
         }
     }
-    
-    SntpTime=SntpTime.substring(20, 24)+"/"+MonthStr+"/"+SntpTime.substring(8, 10)+" "+SntpTime.substring(11, 13)+":"+SntpTime.substring(14, 16)+":"+SntpTime.substring(17, 19)+" "+SntpTime.substring(0, 3);
+    SntpTime=SntpTime.substring(19, 23)+"-"+SntpTime.substring(4, 6)+"-"+SntpTime.substring(7, 9)+" "+SntpTime.substring(10, 12)+":"+SntpTime.substring(13, 15)+":"+SntpTime.substring(16, 18);
   
 }
 

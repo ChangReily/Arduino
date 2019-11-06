@@ -120,8 +120,8 @@ class ESP8266AT {
  private:
 
     /* 
-    * Transfer SNTP Time String Format.
-    /
+     Transfer SNTP Time String Format.
+    */
     void TransferTimeFormat(String &SntpTime);
 
     /* 
