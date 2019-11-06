@@ -6,12 +6,20 @@
 
 SoftwareSerial EspSerial(10, 11);
 ESP8266AT Esp01(EspSerial);
+
 #define DEBUG 0
 
 void setup(void)
 {
   String SntpTime;
   Serial.begin(115200);
+
+  while (!Esp01.ExecAT()) {
+    Serial.println("Exec AT");
+    delay(2000);
+  }
+  delay(5000);
+
 #if DEBUG
   Serial.print("== Checks Version Information ==\n");
   Serial.println(Esp01.ExecATGMR());
@@ -35,22 +43,22 @@ void setup(void)
   Serial.print("\n== Checks the SNTP Time ==\n");
   Serial.println(Esp01.QueryATCIPSNTPTIME());
 
-  SntpTime=Esp01.GetSntpTime();
-  setTime(SntpTime.substring(11,13).toInt(),SntpTime.substring(14,16).toInt(),SntpTime.substring(17,19).toInt(),SntpTime.substring(8,10).toInt(),SntpTime.substring(5,7).toInt(), SntpTime.substring(0,4).toInt());
+  SntpTime = Esp01.GetSntpTime();
+  setTime(SntpTime.substring(11, 13).toInt(), SntpTime.substring(14, 16).toInt(), SntpTime.substring(17, 19).toInt(), SntpTime.substring(8, 10).toInt(), SntpTime.substring(5, 7).toInt(), SntpTime.substring(0, 4).toInt());
 
   // Light
-  Alarm.alarmRepeat(8,30,0, LightOn);    // 8:30 every day
-  Alarm.alarmRepeat(20,30,0, LightOff);  // 20:30 every day
+  Alarm.alarmRepeat(8, 30, 0, LightOn);  // 8:30 every day
+  Alarm.alarmRepeat(20, 30, 0, LightOff); // 20:30 every day
 
   // Feeder
-  Alarm.alarmRepeat(10,32,0,FeederOn);   
-  Alarm.alarmRepeat(10,32,3,FeederOff); 
-  Alarm.alarmRepeat(20,45,0,FeederOn);   
-  Alarm.alarmRepeat(20,45,3,FeederOff); 
+  Alarm.alarmRepeat(10, 32, 0, FeederOn);
+  Alarm.alarmRepeat(10, 32, 3, FeederOff);
+  Alarm.alarmRepeat(20, 45, 0, FeederOn);
+  Alarm.alarmRepeat(20, 45, 3, FeederOff);
 
   // Sync Time
-  Alarm.alarmRepeat(7,30,0, SynSntpTime);    // 7:30 every day
-  
+  Alarm.alarmRepeat(7, 30, 0, SynSntpTime);  // 7:30 every day
+
   // LCD & Temperature
   Alarm.timerRepeat(60, Repeats);      // timer for every 60 seconds
 
@@ -61,6 +69,7 @@ void setup(void)
 
 void loop(void)
 {
+  //Serial.println("???");
   Alarm.delay(1000); // wait one second between clock display
 }
 
@@ -77,7 +86,7 @@ void digitalClockDisplay() {
   printDigits(minute());
   Serial.print(":");
   printDigits(second());
-  
+
 }
 void printDigits(int digits) {
   if (digits < 10)
@@ -123,7 +132,7 @@ void Repeats2() {
   digitalClockDisplay();
   Serial.print("  2 second timer");
   Serial.println();
-  
+
 }
 
 
