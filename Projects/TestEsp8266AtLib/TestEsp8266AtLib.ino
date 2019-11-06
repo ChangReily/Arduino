@@ -36,7 +36,7 @@ void setup(void)
   Serial.println(Esp01.QueryATCIPSNTPTIME());
 
   SntpTime=Esp01.GetSntpTime();
-  setTime(SntpTime.substring(11,13).toInt(),SntpTime.substring(14,16).toInt(),SntpTime.substring(17,19).toInt(),SntpTime.substring(8,10).toInt(),SntpTime.substring(5,7).toInt(), SntpTime.substring(2,4).toInt());
+  setTime(SntpTime.substring(11,13).toInt(),SntpTime.substring(14,16).toInt(),SntpTime.substring(17,19).toInt(),SntpTime.substring(8,10).toInt(),SntpTime.substring(5,7).toInt(), SntpTime.substring(0,4).toInt());
 
   // Light
   Alarm.alarmRepeat(8,30,0, LightOn);    // 8:30 every day
