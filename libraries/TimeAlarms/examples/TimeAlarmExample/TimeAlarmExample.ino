@@ -20,7 +20,7 @@
 AlarmId id;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   while (!Serial) ; // wait for Arduino Serial Monitor
 
   setTime(8,29,0,1,1,11); // set time to Saturday 8:29:00am Jan 1 2011
