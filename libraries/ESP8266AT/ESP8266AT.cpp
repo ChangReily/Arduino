@@ -20,6 +20,14 @@ ESP8266AT::ESP8266AT(HardwareSerial &uart, uint32_t baud): m_puart(&uart)
 }
 #endif
 
+bool ESP8266AT::ExecAT(void)
+{
+    String version;
+    rx_empty();
+    m_puart->println("AT");
+    return recvFind("OK");
+}
+
 String ESP8266AT::ExecATGMR(void)
 {
     String version;

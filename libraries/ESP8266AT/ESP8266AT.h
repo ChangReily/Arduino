@@ -59,7 +59,13 @@ class ESP8266AT {
      */
     ESP8266AT(HardwareSerial &uart, uint32_t baud = 9600);
 #endif
-    
+    /**
+     * AT ack of AT Command Set. 
+     * 
+     * @return the string. 
+     */
+    bool ExecAT(void);
+	
     /**
      * Get the version of AT Command Set. 
      * 
