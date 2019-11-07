@@ -7,7 +7,7 @@
 SoftwareSerial EspSerial(10, 11);
 ESP8266AT Esp01(EspSerial);
 
-#define DEBUG 0
+#define DEBUG_8266 0
 
 void setup(void)
 {
@@ -15,12 +15,24 @@ void setup(void)
   Serial.begin(115200);
 
   while (!Esp01.ExecAT()) {
+#if DEBUG_8266
     Serial.println("Exec AT");
+#endif    
     delay(2000);
   }
-  delay(5000);
-
-#if DEBUG
+  while (Esp01.SetATCIPSNTPCFG() == "None") {
+#if DEBUG_8266
+    Serial.println("Set SNTP Config");
+#endif
+    delay(2000);
+  }
+//  while (Esp01.QueryATCWJAPCUR() == "No AP") {
+//#if DEBUG_8266
+//    Serial.println("No AP");
+//#endif
+//    delay(2000);
+//  }
+#if DEBUG_8266
   Serial.print("== Checks Version Information ==\n");
   Serial.println(Esp01.ExecATGMR());
 
@@ -29,7 +41,7 @@ void setup(void)
 
   Serial.print("\n== Current Wi-Fi mode ==\n");
   Serial.println(Esp01.QueryATCWMODECUR());
-#endif
+
   Serial.print("\n== Get Current AP ==\n");
   Serial.println(Esp01.QueryATCWJAPCUR());
 
@@ -39,10 +51,9 @@ void setup(void)
   Serial.print("\n== Get Configuration of SNTP ==\n");
   Serial.println(Esp01.QueryATCIPSNTPCFG());
 
-  delay(1000);
   Serial.print("\n== Checks the SNTP Time ==\n");
   Serial.println(Esp01.QueryATCIPSNTPTIME());
-
+#endif
   SntpTime = Esp01.GetSntpTime();
   setTime(SntpTime.substring(11, 13).toInt(), SntpTime.substring(14, 16).toInt(), SntpTime.substring(17, 19).toInt(), SntpTime.substring(8, 10).toInt(), SntpTime.substring(5, 7).toInt(), SntpTime.substring(0, 4).toInt());
 
@@ -51,8 +62,8 @@ void setup(void)
   Alarm.alarmRepeat(20, 30, 0, LightOff); // 20:30 every day
 
   // Feeder
-  Alarm.alarmRepeat(10, 32, 0, FeederOn);
-  Alarm.alarmRepeat(10, 32, 3, FeederOff);
+  Alarm.alarmRepeat(8, 45, 0, FeederOn);
+  Alarm.alarmRepeat(8, 45, 3, FeederOff);
   Alarm.alarmRepeat(20, 45, 0, FeederOn);
   Alarm.alarmRepeat(20, 45, 3, FeederOff);
 
@@ -75,12 +86,12 @@ void loop(void)
 
 void digitalClockDisplay() {
   // digital clock display of the time
-  Serial.print(year());
-  Serial.print("-");
-  printDigits(month());
-  Serial.print("-");
-  printDigits(day());
-  Serial.print(" ");
+//  Serial.print(year());
+//  Serial.print("-");
+//  printDigits(month());
+//  Serial.print("-");
+//  printDigits(day());
+//  Serial.print(" ");
   printDigits(hour());
   Serial.print(":");
   printDigits(minute());
@@ -97,42 +108,42 @@ void printDigits(int digits) {
 void SynSntpTime() {
   digitalClockDisplay();
   Serial.println("  [SynTime] - Sync SNTP Time");
-  Serial.println();
 }
 
 // functions to be called when an alarm triggers:
 void LightOn() {
   digitalClockDisplay();
   Serial.println("  [Light] - Turn Lights On");
-  Serial.println();
 }
 void LightOff() {
   digitalClockDisplay();
   Serial.println("  [Light] - Turn Lights Off");
-  Serial.println();
 }
 void FeederOn() {
   digitalClockDisplay();
-  Serial.print("  [Feeder] Fish Feeder Start");
-  Serial.println();
+  Serial.println("  [Feeder] Fish Feeder Start");
 }
 void FeederOff() {
   digitalClockDisplay();
-  Serial.print("  [Feeder] Fish Feeder End");
-  Serial.println();
+  Serial.println("  [Feeder] Fish Feeder End");
 }
 
 void Repeats() {
+  String SntpTime;
   digitalClockDisplay();
-  Serial.print("  60 second timer");
-  Serial.println();
+  Serial.println("  60 second timer");
+  if (year()==1970){
+    SntpTime = Esp01.GetSntpTime();
+    Serial.println(SntpTime);
+    if (SntpTime.substring(0, 4)!="1970") { 
+    setTime(SntpTime.substring(11, 13).toInt(), SntpTime.substring(14, 16).toInt(), SntpTime.substring(17, 19).toInt(), SntpTime.substring(8, 10).toInt(), SntpTime.substring(5, 7).toInt(), SntpTime.substring(0, 4).toInt());
+    }
+  }
 }
 
 void Repeats2() {
   digitalClockDisplay();
-  Serial.print("  2 second timer");
-  Serial.println();
-
+  Serial.println("  2 second timer");
 }
 
 
