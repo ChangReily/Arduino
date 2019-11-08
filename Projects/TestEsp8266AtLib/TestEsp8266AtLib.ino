@@ -11,6 +11,13 @@
 #include <DallasTemperature.h>
 
 #define DEBUG_8266 0
+#define SNTP_YEAR(Str) Str.substring(19,23)
+#define SNTP_MONTH(Str) Str.substring(4,6)
+#define SNTP_DAY(Str) Str.substring(7,9)
+#define SNTP_HOUR(Str) Str.substring(10,12)
+#define SNTP_MIN(Str) Str.substring(13,15)
+#define SNTP_SEC(Str) Str.substring(16,19)
+
 SoftwareSerial EspSerial(10, 11);
 ESP8266AT Esp01(EspSerial);
 
@@ -21,9 +28,33 @@ LiquidCrystal_I2C lcd(0x27, 20, 4); // set the LCD address to 0x27 for a 16 char
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire); // Pass our oneWire reference to Dallas Temperature.
 
-#define PIR_IN_PIN 2
-#define LIGHT_RELAY_OUT_PIN 2
+#define PIR_IN_PIN 3
+#define LIGHT_RELAY_OUT_PIN 4
 
+int LightStatus = 0;
+byte termometru[8] = //icon for termometer
+{
+  B00100,
+  B01010,
+  B01010,
+  B01110,
+  B01110,
+  B11111,
+  B11111,
+  B01110
+};
+
+byte picatura[8] = //icon for water droplet
+{
+  B01110,
+  B10001,
+  B10101,
+  B10101,
+  B01110,
+  B01110,
+  B00100,
+  B00000,
+};
 
 void setup(void)
 {
@@ -37,6 +68,8 @@ void setup(void)
   // Initialize LCD1602 I2C display model
   lcd.init();
   lcd.backlight();
+  lcd.createChar(1, termometru);
+  lcd.createChar(2, picatura);
   //--------------------------------------------------------------------------------
 
   //--------------------------------------------------------------------------------
@@ -56,7 +89,6 @@ void setup(void)
 
   //--------------------------------------------------------------------------------
   // Initialize ESP8266 ESP-01 for AT command check and set SNTP config
-  delay(10000); // Delay 10 sec for connect internet
 
   while (!Esp01.ExecAT()) {
     delay(2000);
@@ -65,6 +97,7 @@ void setup(void)
   while (Esp01.SetATCIPSNTPCFG() == "None") {
     delay(2000);
   }
+  delay(2000);
   //--------------------------------------------------------------------------------
 
 #if DEBUG_8266
@@ -90,14 +123,12 @@ void setup(void)
   Serial.println(Esp01.QueryATCIPSNTPTIME());
 #endif
 
-  // Get the SNTP time first and set the time
-  SntpTime = Esp01.GetSntpTime();
-  setTime(SntpTime.substring(11, 13).toInt(), SntpTime.substring(14, 16).toInt(), SntpTime.substring(17, 19).toInt(), SntpTime.substring(8, 10).toInt(), SntpTime.substring(5, 7).toInt(), SntpTime.substring(0, 4).toInt());
-
+  // Get the SNTP time and set the time
+  SynSntpTime();
+  
   // Display the time on LCD1602
   lcd.setCursor(0, 0);
-  SntpTime = SntpTime.substring(0, 4) + "-" + SntpTime.substring(5, 7) + "-" + SntpTime.substring(8, 10) + " " + SntpTime.substring(11, 13) + ":" + SntpTime.substring(14, 16);
-  lcd.print(SntpTime);
+  lcd.print(String(year()) + "-" + ByteString(month()) + "-" + ByteString(day()) + " " + ByteString(hour()) + ":" + ByteString(minute()));
 
   // Set Alarm for Light
   Alarm.alarmRepeat(8, 30, 0, LightOn);   // 8:30 every day
@@ -114,11 +145,10 @@ void setup(void)
   Alarm.alarmRepeat(19, 30, 0, SynSntpTime);  // 19:30 every day
 
   // Set Alarm for update time & Temperature on LCD1602
-  Alarm.timerRepeat(60, Repeat64sec);      // timer for every 60 seconds
+  Alarm.timerRepeat(60, Repeat60sec);      // timer for every 60 seconds
 
   // Set Alarm for HC-SR501 PIR Sensor
   Alarm.timerRepeat(3, Repeats3sec);      // timer for every 3 seconds
-
 }
 
 void loop(void)
@@ -145,8 +175,14 @@ void SynSntpTime() {
   Serial.println("  [SynTime] - Sync SNTP Time");
   String SntpTime;
   SntpTime = Esp01.GetSntpTime();
-  if (SntpTime.substring(0, 4) != "1970") {
-    setTime(SntpTime.substring(11, 13).toInt(), SntpTime.substring(14, 16).toInt(), SntpTime.substring(17, 19).toInt(), SntpTime.substring(8, 10).toInt(), SntpTime.substring(5, 7).toInt(), SntpTime.substring(0, 4).toInt());
+  if (SntpTime.substring(19, 23).toInt() != 1970) {
+    setTime(SNTP_HOUR(SntpTime).toInt(), SNTP_MIN(SntpTime).toInt(), SNTP_SEC(SntpTime).toInt(), SNTP_DAY(SntpTime).toInt(), SNTP_MONTH(SntpTime).toInt(), SNTP_YEAR(SntpTime).toInt());
+    if (makeTime(8, 30, 0, SNTP_DAY(SntpTime).toInt(), SNTP_MONTH(SntpTime).toInt(), SNTP_YEAR(SntpTime).toInt()) < now() &&
+        now() < makeTime(20, 30, 0, SNTP_DAY(SntpTime).toInt(), SNTP_MONTH(SntpTime).toInt(), SNTP_YEAR(SntpTime).toInt())) {
+      LightStatus = 1;
+    } else {
+      LightStatus = 0;
+    }
   }
 }
 void LightOn() {
@@ -171,15 +207,12 @@ void FeederOff() {
   Serial.println("  [Feeder] Fish Feeder End");
 }
 
-void Repeat64sec() {
+void Repeat60sec() {
   digitalClockDisplay();
   Serial.println("  60 second timer");
-  String SntpTime;
+  
   if (year() == 1970) {
-    SntpTime = Esp01.GetSntpTime();
-    if (SntpTime.substring(0, 4) != "1970") {
-      setTime(SntpTime.substring(11, 13).toInt(), SntpTime.substring(14, 16).toInt(), SntpTime.substring(17, 19).toInt(), SntpTime.substring(8, 10).toInt(), SntpTime.substring(5, 7).toInt(), SntpTime.substring(0, 4).toInt());
-    }
+   SynSntpTime();
   }
   // Update Time on LCD1602
   lcd.setCursor(0, 0);
@@ -187,10 +220,21 @@ void Repeat64sec() {
 
   // Update Temperatures on LCD1602
   sensors.requestTemperatures();
-  lcd.setCursor(1, 0);
+  lcd.setCursor(0, 1);
+  lcd.write(0x01);
+  lcd.print(" ");
   lcd.print(sensors.getTempCByIndex(0));// 取得溫度讀數（攝氏）並輸出， 參數0代表匯流排上第0個1-Wire裝置
   lcd.write(0xDF);
   lcd.print("C");
+
+  // Update Light Status
+  lcd.print("  ");
+  lcd.write(0x02);
+  if (LightStatus == 1) {
+    lcd.print(" ON ");
+  } else {
+    lcd.print(" OFF");
+  }
 }
 
 void Repeats3sec() {

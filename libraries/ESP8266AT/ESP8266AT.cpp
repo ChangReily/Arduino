@@ -8,7 +8,7 @@
 ESP8266AT::ESP8266AT(SoftwareSerial &uart, uint32_t baud): m_puart(&uart)
 {
     // Serial.begin(115200);
-    // Serial.print("Init Arduino Serial port");
+    // Serial.println("Init Arduino Serial port");
     m_puart->begin(baud);
     rx_empty();
 }
@@ -149,7 +149,6 @@ void ESP8266AT::TransferTimeFormat(String &SntpTime)
             break;
         }
     }
-    SntpTime=SntpTime.substring(19, 23)+"-"+SntpTime.substring(4, 6)+"-"+SntpTime.substring(7, 9)+" "+SntpTime.substring(10, 12)+":"+SntpTime.substring(13, 15)+":"+SntpTime.substring(16, 18);
   
 }
 
