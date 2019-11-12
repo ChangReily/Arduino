@@ -59,6 +59,7 @@ byte picatura[8] = //icon for water droplet
 void setup(void)
 {
   String SntpTime;
+  int Counter;
   //--------------------------------------------------------------------------------
   // Initialize Serial Port for debug
   Serial.begin(115200);
@@ -98,30 +99,23 @@ void setup(void)
     delay(2000);
   }
   delay(2000);
+
+  Counter=0;
+  while (Counter < 20) {
+    lcd.setCursor(0, 0);
+    lcd.print("Connecting...");
+    lcd.setCursor(0, 1);
+    lcd.print(Esp01.QueryATCWJAPCUR());
+    if (Esp01.QueryATCWJAPCUR() != "No AP"){
+       delay(2000);
+      lcd.clear();
+      break;  
+    }
+    delay(3000);
+    Counter++;
+  }
+  
   //--------------------------------------------------------------------------------
-
-#if DEBUG_8266
-  Serial.print("== Checks Version Information ==\n");
-  Serial.println(Esp01.ExecATGMR());
-
-  Serial.print("\n== UART Configuration ==\n");
-  Serial.println(Esp01.QueryATUARTCUR());
-
-  Serial.print("\n== Current Wi-Fi mode ==\n");
-  Serial.println(Esp01.QueryATCWMODECUR());
-
-  Serial.print("\n== Get Current AP ==\n");
-  Serial.println(Esp01.QueryATCWJAPCUR());
-
-  Serial.print("\n== Set Configuration of SNTP ==\n");
-  Serial.println(Esp01.SetATCIPSNTPCFG());
-
-  Serial.print("\n== Get Configuration of SNTP ==\n");
-  Serial.println(Esp01.QueryATCIPSNTPCFG());
-
-  Serial.print("\n== Checks the SNTP Time ==\n");
-  Serial.println(Esp01.QueryATCIPSNTPTIME());
-#endif
 
   // Get the SNTP time and set the time
   SynSntpTime();
