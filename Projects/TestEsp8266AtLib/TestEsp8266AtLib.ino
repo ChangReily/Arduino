@@ -30,8 +30,10 @@ DallasTemperature sensors(&oneWire); // Pass our oneWire reference to Dallas Tem
 
 #define PIR_IN_PIN 3
 #define LIGHT_RELAY_OUT_PIN 4
+#define FEEDER_OUT_PIN 5
 
 int LightStatus = 0;
+
 byte termometru[8] = //icon for termometer
 {
   B00100,
@@ -58,12 +60,9 @@ byte picatura[8] = //icon for water droplet
 
 void setup(void)
 {
-  String SntpTime;
-  int Counter;
   //--------------------------------------------------------------------------------
   // Initialize Serial Port for debug
   Serial.begin(115200);
-  //--------------------------------------------------------------------------------
 
   //--------------------------------------------------------------------------------
   // Initialize LCD1602 I2C display model
@@ -71,25 +70,25 @@ void setup(void)
   lcd.backlight();
   lcd.createChar(1, termometru);
   lcd.createChar(2, picatura);
-  //--------------------------------------------------------------------------------
 
   //--------------------------------------------------------------------------------
   // Initialize DS1802 Temperature model
   sensors.begin();
-  //--------------------------------------------------------------------------------
 
   //--------------------------------------------------------------------------------
   // Initialize I/O PIN for HC-SR501 PIR Sensor
   pinMode(PIR_IN_PIN, INPUT);
-  //--------------------------------------------------------------------------------
 
   //--------------------------------------------------------------------------------
   // Initialize I/O PIN for Light Relay
   pinMode(LIGHT_RELAY_OUT_PIN, OUTPUT);
-  //--------------------------------------------------------------------------------
 
   //--------------------------------------------------------------------------------
-  // Initialize ESP8266 ESP-01 for AT command check and set SNTP config
+  // Initialize I/O PIN for Fish Feeder
+  pinMode(FEEDER_OUT_PIN, OUTPUT);
+
+  //--------------------------------------------------------------------------------
+  // Initialize ESP8266 ESP-01 for AT command check, set SNTP config, and get AP
 
   while (!Esp01.ExecAT()) {
     delay(2000);
@@ -100,7 +99,7 @@ void setup(void)
   }
   delay(2000);
 
-  Counter=0;
+  int Counter=0;
   while (Counter < 20) {
     lcd.setCursor(0, 0);
     lcd.print("Connecting...");
@@ -116,14 +115,31 @@ void setup(void)
   }
   
   //--------------------------------------------------------------------------------
-
   // Get the SNTP time and set the time
   SynSntpTime();
-  
+
+  //--------------------------------------------------------------------------------
   // Display the time on LCD1602
   lcd.setCursor(0, 0);
   lcd.print(String(year()) + "-" + ByteString(month()) + "-" + ByteString(day()) + " " + ByteString(hour()) + ":" + ByteString(minute()));
 
+  // Display Temperatures
+  lcd.setCursor(0, 1);
+  lcd.write(0x01);
+  lcd.print(" 00.00");
+  lcd.write(0xDF);
+  lcd.print("C");
+
+  // Display LightStatus
+  lcd.print("  ");
+  lcd.write(0x02);
+  if (LightStatus == 1) {
+    lcd.print(" ON ");
+  } else {
+    lcd.print(" OFF");
+  }
+
+  //--------------------------------------------------------------------------------
   // Set Alarm for Light
   Alarm.alarmRepeat(8, 30, 0, LightOn);   // 8:30 every day
   Alarm.alarmRepeat(20, 30, 0, LightOff); // 20:30 every day
@@ -169,41 +185,51 @@ void SynSntpTime() {
   Serial.println("  [SynTime] - Sync SNTP Time");
   String SntpTime;
   SntpTime = Esp01.GetSntpTime();
+//  Serial.println(SntpTime);
   if (SntpTime.substring(19, 23).toInt() != 1970) {
     setTime(SNTP_HOUR(SntpTime).toInt(), SNTP_MIN(SntpTime).toInt(), SNTP_SEC(SntpTime).toInt(), SNTP_DAY(SntpTime).toInt(), SNTP_MONTH(SntpTime).toInt(), SNTP_YEAR(SntpTime).toInt());
     if (makeTime(8, 30, 0, SNTP_DAY(SntpTime).toInt(), SNTP_MONTH(SntpTime).toInt(), SNTP_YEAR(SntpTime).toInt()) < now() &&
         now() < makeTime(20, 30, 0, SNTP_DAY(SntpTime).toInt(), SNTP_MONTH(SntpTime).toInt(), SNTP_YEAR(SntpTime).toInt())) {
-      LightStatus = 1;
+      LightOn();
     } else {
-      LightStatus = 0;
+      LightOff();
     }
   }
 }
+
 void LightOn() {
-  digitalClockDisplay();
-  digitalWrite(LIGHT_RELAY_OUT_PIN, LOW);
-  Serial.println("  [Light] - Turn Lights On");
+  if (LightStatus==0){
+    digitalClockDisplay();
+    Serial.println("  [Light] - Turn Lights On");
+    digitalWrite(LIGHT_RELAY_OUT_PIN, HIGH);
+    LightStatus=1;
+  }
 }
 
 void LightOff() {
-  digitalClockDisplay();
-  digitalWrite(LIGHT_RELAY_OUT_PIN, HIGH);
-  Serial.println("  [Light] - Turn Lights Off");
+  if (LightStatus==1){
+    digitalClockDisplay();
+    Serial.println("  [Light] - Turn Lights Off");
+    digitalWrite(LIGHT_RELAY_OUT_PIN, LOW);
+    LightStatus=0;
+  }
 }
 
 void FeederOn() {
   digitalClockDisplay();
   Serial.println("  [Feeder] Fish Feeder Start");
+  digitalWrite(FEEDER_OUT_PIN, HIGH);
 }
 
 void FeederOff() {
   digitalClockDisplay();
   Serial.println("  [Feeder] Fish Feeder End");
+  digitalWrite(FEEDER_OUT_PIN, LOW);
 }
 
 void Repeat60sec() {
-  digitalClockDisplay();
-  Serial.println("  60 second timer");
+//  digitalClockDisplay();
+//  Serial.println("  60 second timer");
   
   if (year() == 1970) {
    SynSntpTime();
@@ -232,13 +258,17 @@ void Repeat60sec() {
 }
 
 void Repeats3sec() {
-  digitalClockDisplay();
-  Serial.println("  3 second timer");
+//  digitalClockDisplay();
+//  Serial.println("  3 second timer");
 
   int val = digitalRead(PIR_IN_PIN); //讀取 PIR 輸出
   if (val == HIGH) { //PIR 有偵測到時
+    digitalClockDisplay();
+    Serial.println("  3 second timer [PIR = 1] LCD ON");
     lcd.backlight();
   } else {
+//    digitalClockDisplay();
+//    Serial.println("  3 second timer [PIR = 0] LCD OFF");
     lcd.noBacklight();
   }
 }
