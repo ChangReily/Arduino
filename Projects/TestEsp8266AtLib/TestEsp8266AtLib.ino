@@ -30,7 +30,7 @@ DallasTemperature sensors(&oneWire); // Pass our oneWire reference to Dallas Tem
 
 #define PIR_IN_PIN 3
 #define LIGHT_RELAY_OUT_PIN 4
-#define FEEDER_OUT_PIN 5
+#define FEEDER_OUT_PIN 9
 
 int LightStatus = 0;
 
