@@ -7,6 +7,7 @@
 #include <DallasTemperature.h>
 #include <ESP8266AT.h>
 
+#define DEBUG 0
 //--------------------------------------------------------------------------------
 // Define IO PIN
 #define PIR_IN_PIN 3
@@ -254,11 +255,13 @@ String ByteString(int Num) {
 }
 void digitalClockDisplay(String Str) {
   // digital clock display of the time
+#if DEBUG  
   if (Str == "") {
     Serial.println(String(year()) + "-" + ByteString(month()) + "-" + ByteString(day()) + " " + ByteString(hour()) + ":" + ByteString(minute()) + ":" + ByteString(second()));
   } else {
     Serial.println(String(year()) + "-" + ByteString(month()) + "-" + ByteString(day()) + " " + ByteString(hour()) + ":" + ByteString(minute()) + ":" + ByteString(second()) + " " + Str);
   }
+#endif
 }
 
 void LightOn() {
@@ -292,8 +295,10 @@ void SynSntpTimeToRtc() {
   if (Esp01.QueryATCWJAPCUR() != "No AP") {
     String SntpTime;
     SntpTime = Esp01.GetSntpTime();
+#if DEBUG
     Serial.print("SNTP : ");
     Serial.println(SntpTime);
+#endif
     if (SNTP_YEAR(SntpTime).toInt() != 1970) {
       RTC.set(makeTime(SNTP_HOUR(SntpTime).toInt(), SNTP_MIN(SntpTime).toInt(), SNTP_SEC(SntpTime).toInt(), SNTP_DAY(SntpTime).toInt(), SNTP_MONTH(SntpTime).toInt(), SNTP_YEAR(SntpTime).toInt()));
     }
