@@ -32,6 +32,14 @@
 #endif
 
 
+#define SNTP_YEAR(Str) Str.substring(19,23)
+#define SNTP_MONTH(Str) Str.substring(4,6)
+#define SNTP_DAY(Str) Str.substring(7,9)
+#define SNTP_HOUR(Str) Str.substring(10,12)
+#define SNTP_MIN(Str) Str.substring(13,15)
+#define SNTP_SEC(Str) Str.substring(16,19)
+
+
 /**
  * Provide an easy-to-use way to manipulate ESP8266AT. 
  */
