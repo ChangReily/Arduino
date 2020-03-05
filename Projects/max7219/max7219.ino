@@ -28,16 +28,11 @@
 #define  SET_MINUTE 3
 #define  SET_HOUR   1
 
-
 // What pin on the Arduino connects to the LOAD/CS pin on the MAX7219/MAX7221
 #define LOAD_PIN 10
 
 uint8_t      Relay_Switch;
 tmElements_t tm;
-
-
-
-
 
 /**
  * Transfers data to a MAX7219/MAX7221 register.
