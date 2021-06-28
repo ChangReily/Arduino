@@ -34,3 +34,6 @@
 [submodule "libraries\\TimeAlarms"]
 	path = libraries\\TimeAlarms
 	url = https://github.com/PaulStoffregen/TimeAlarms.git
+[submodule "libraries\\ESP8266"]
+	path = libraries\\ESP8266
+	url = https://github.com/itead/ITEADLIB_Arduino_WeeESP8266.git
