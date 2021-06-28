@@ -25,9 +25,6 @@
 [submodule "libraries\\BH1750"]
 	path = libraries\\BH1750
 	url = https://github.com/claws/BH1750.git
-[submodule "libraries\\RealTimeClockDS1307"]
-	path = libraries\\RealTimeClockDS1307
-	url = https://github.com/davidhbrown/RealTimeClockDS1307.git
 [submodule "libraries\\LiquidCrystal_I2C1602V1"]
 	path = libraries\\LiquidCrystal_I2C1602V1
 	url = https://github.com/openenergymonitor/LiquidCrystal_I2C1602V1.git
