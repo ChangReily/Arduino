@@ -7,3 +7,6 @@
 [submodule "libraries\\AdafruitGFX-ChineseFont-Addon"]
 	path = libraries\\AdafruitGFX-ChineseFont-Addon
 	url = https://github.com/will127534/AdafruitGFX-ChineseFont-Addon.git
+[submodule "libraries\\Adafruit-GFX-Library"]
+	path = libraries\\Adafruit-GFX-Library
+	url = https://github.com/adafruit/Adafruit-GFX-Library.git
