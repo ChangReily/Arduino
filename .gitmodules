@@ -1,3 +1,6 @@
 [submodule "libraries\\DS1307RTC"]
 	path = libraries\\DS1307RTC
 	url = https://github.com/PaulStoffregen/DS1307RTC
+[submodule "libraries\\TimeLib"]
+	path = libraries\\TimeLib
+	url = https://github.com/PaulStoffregen/Time
