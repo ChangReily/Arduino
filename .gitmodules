@@ -10,3 +10,6 @@
 [submodule "libraries\\Adafruit-GFX-Library"]
 	path = libraries\\Adafruit-GFX-Library
 	url = https://github.com/adafruit/Adafruit-GFX-Library.git
+[submodule "libraries\\Adafruit-ST7735-Library"]
+	path = libraries\\Adafruit-ST7735-Library
+	url = https://github.com/adafruit/Adafruit-ST7735-Library.git
