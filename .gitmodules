@@ -31,3 +31,6 @@
 [submodule "libraries\\OneWire"]
 	path = libraries\\OneWire
 	url = https://github.com/PaulStoffregen/OneWire.git
+[submodule "libraries\\TimeAlarms"]
+	path = libraries\\TimeAlarms
+	url = https://github.com/PaulStoffregen/TimeAlarms.git
