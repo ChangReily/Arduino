@@ -28,3 +28,6 @@
 [submodule "libraries\\LiquidCrystal_I2C1602V1"]
 	path = libraries\\LiquidCrystal_I2C1602V1
 	url = https://github.com/openenergymonitor/LiquidCrystal_I2C1602V1.git
+[submodule "libraries\\OneWire"]
+	path = libraries\\OneWire
+	url = https://github.com/PaulStoffregen/OneWire.git
