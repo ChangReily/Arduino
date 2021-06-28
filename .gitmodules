@@ -16,3 +16,6 @@
 [submodule "libraries\\ArduinoJson"]
 	path = libraries\\ArduinoJson
 	url = https://github.com/bblanchon/ArduinoJson.git
+[submodule "libraries\\Rfid-MFRC522"]
+	path = libraries\\Rfid-MFRC522
+	url = https://github.com/miguelbalboa/rfid.git
