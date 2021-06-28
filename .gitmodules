@@ -19,3 +19,6 @@
 [submodule "libraries\\Rfid-MFRC522"]
 	path = libraries\\Rfid-MFRC522
 	url = https://github.com/miguelbalboa/rfid.git
+[submodule "libraries\\DS1820"]
+	path = libraries\\DS1820
+	url = https://github.com/milesburton/Arduino-Temperature-Control-Library.git
