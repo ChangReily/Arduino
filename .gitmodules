@@ -22,3 +22,6 @@
 [submodule "libraries\\DS1820"]
 	path = libraries\\DS1820
 	url = https://github.com/milesburton/Arduino-Temperature-Control-Library.git
+[submodule "libraries\\BH1750"]
+	path = libraries\\BH1750
+	url = https://github.com/claws/BH1750.git
