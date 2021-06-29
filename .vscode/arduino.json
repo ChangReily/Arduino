@@ -1,0 +1,8 @@
+{
+    "port": "COM3",
+    "configuration": "cpu=16MHzatmega328",
+    "board": "arduino:avr:pro",
+    "programmer": "arduino:avrispmkii",
+    "output": "build",
+    "sketch": "Projects\\RtcMax7219\\max7219.ino"
+}
