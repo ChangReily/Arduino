@@ -1,39 +1,39 @@
-[submodule "libraries\\DS1307RTC"]
-	path = libraries\\DS1307RTC
+[submodule "libraries/DS1307RTC"]
+	path = libraries/DS1307RTC
 	url = https://github.com/PaulStoffregen/DS1307RTC
-[submodule "libraries\\TimeLib"]
-	path = libraries\\TimeLib
+[submodule "libraries/TimeLib"]
+	path = libraries/TimeLib
 	url = https://github.com/PaulStoffregen/Time
-[submodule "libraries\\AdafruitGFX-ChineseFont-Addon"]
-	path = libraries\\AdafruitGFX-ChineseFont-Addon
+[submodule "libraries/AdafruitGFX-ChineseFont-Addon"]
+	path = libraries/AdafruitGFX-ChineseFont-Addon
 	url = https://github.com/will127534/AdafruitGFX-ChineseFont-Addon.git
-[submodule "libraries\\Adafruit-GFX-Library"]
-	path = libraries\\Adafruit-GFX-Library
+[submodule "libraries/Adafruit-GFX-Library"]
+	path = libraries/Adafruit-GFX-Library
 	url = https://github.com/adafruit/Adafruit-GFX-Library.git
-[submodule "libraries\\Adafruit-ST7735-Library"]
-	path = libraries\\Adafruit-ST7735-Library
+[submodule "libraries/Adafruit-ST7735-Library"]
+	path = libraries/Adafruit-ST7735-Library
 	url = https://github.com/adafruit/Adafruit-ST7735-Library.git
-[submodule "libraries\\ArduinoJson"]
-	path = libraries\\ArduinoJson
+[submodule "libraries/ArduinoJson"]
+	path = libraries/ArduinoJson
 	url = https://github.com/bblanchon/ArduinoJson.git
-[submodule "libraries\\Rfid-MFRC522"]
-	path = libraries\\Rfid-MFRC522
+[submodule "libraries/Rfid-MFRC522"]
+	path = libraries/Rfid-MFRC522
 	url = https://github.com/miguelbalboa/rfid.git
-[submodule "libraries\\DS1820"]
-	path = libraries\\DS1820
+[submodule "libraries/DS1820"]
+	path = libraries/DS1820
 	url = https://github.com/milesburton/Arduino-Temperature-Control-Library.git
-[submodule "libraries\\BH1750"]
-	path = libraries\\BH1750
+[submodule "libraries/BH1750"]
+	path = libraries/BH1750
 	url = https://github.com/claws/BH1750.git
-[submodule "libraries\\LiquidCrystal_I2C1602V1"]
-	path = libraries\\LiquidCrystal_I2C1602V1
+[submodule "libraries/LiquidCrystal_I2C1602V1"]
+	path = libraries/LiquidCrystal_I2C1602V1
 	url = https://github.com/openenergymonitor/LiquidCrystal_I2C1602V1.git
-[submodule "libraries\\OneWire"]
-	path = libraries\\OneWire
+[submodule "libraries/OneWire"]
+	path = libraries/OneWire
 	url = https://github.com/PaulStoffregen/OneWire.git
-[submodule "libraries\\TimeAlarms"]
-	path = libraries\\TimeAlarms
+[submodule "libraries/TimeAlarms"]
+	path = libraries/TimeAlarms
 	url = https://github.com/PaulStoffregen/TimeAlarms.git
-[submodule "libraries\\ESP8266"]
-	path = libraries\\ESP8266
+[submodule "libraries/ESP8266"]
+	path = libraries/ESP8266
 	url = https://github.com/itead/ITEADLIB_Arduino_WeeESP8266.git
