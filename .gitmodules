@@ -40,4 +40,3 @@
 [submodule "libraries/TM1637"]
 	path = libraries/TM1637
 	url = https://github.com/avishorp/TM1637.git
-	branch = v1.2.0
