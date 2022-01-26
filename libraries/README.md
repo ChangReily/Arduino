@@ -13,3 +13,4 @@
 | OneWire | https://github.com/PaulStoffregen/OneWire.git |
 | TimeAlarms | https://github.com/PaulStoffregen/TimeAlarms.git |
 | ESP8266 | https://github.com/itead/ITEADLIB_Arduino_WeeESP8266.git |
+| TM1637 | https://github.com/avishorp/TM1637.git |
