@@ -37,6 +37,3 @@
 [submodule "libraries/ESP8266"]
 	path = libraries/ESP8266
 	url = https://github.com/itead/ITEADLIB_Arduino_WeeESP8266.git
-[submodule "libraries/TM1637"]
-	path = libraries/TM1637
-	url = https://github.com/avishorp/TM1637.git
