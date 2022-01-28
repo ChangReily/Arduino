@@ -3,21 +3,21 @@
 #include <DS1307RTC.h>
 #include <LiquidCrystal_I2C.h>
 #include <SoftwareSerial.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
 #include <ESP8266AT.h>
-#include <Servo.h> 
+#include <Servo.h>
 #include <TM1637Display.h>
+//#include <OneWire.h>
+//#include <DallasTemperature.h>
 
-#define DEBUG 1
 //--------------------------------------------------------------------------------
 // Define IO PIN
-#define PIR_IN_PIN 3
 #define LIGHT_RELAY_OUT_PIN 8
 #define FEEDER_OUT_PIN 9
-#define TEMPERATURE_IO_PIN 2
 #define TM1637_CLK 6
 #define TM1637_DIO 7
+//#define PIR_IN_PIN 3
+//#define TEMPERATURE_IO_PIN 2
+
 //--------------------------------------------------------------------------------
 // Declare the alarm structrun
 #define AlarmHMS(_hr_, _min_, _sec_) (_hr_ * SECS_PER_HOUR + _min_ * SECS_PER_MIN + _sec_)
@@ -66,16 +66,13 @@ byte picatura[8] = //icon for water droplet
 //--------------------------------------------------------------------------------
 // Declare global variable
 LiquidCrystal_I2C lcd(0x27, 20, 4); // set the LCD address to 0x27 for a 16 chars and 2 line display
-//#if DEBUG
-SoftwareSerial EspSerial(10, 11);
-//SoftwareSerial EspSerial(0,1);
-//#endif
+SoftwareSerial EspSerial(10, 11);  //SoftwareSerial EspSerial(0,1);
 ESP8266AT Esp01(EspSerial);
-OneWire oneWire(TEMPERATURE_IO_PIN);
-DallasTemperature sensors(&oneWire); // Pass our oneWire reference to Dallas Temperature.
 Servo myservo;
+TM1637Display TM1637Display(TM1637_CLK, TM1637_DIO);
 
-TM1637Display display(TM1637_CLK, TM1637_DIO);
+//OneWire oneWire(TEMPERATURE_IO_PIN);
+//DallasTemperature sensors(&oneWire); // Pass our oneWire reference to Dallas Temperature.
 
 Alarm_Info AlarmList[10];
 int LightStatus = 0;
@@ -84,19 +81,16 @@ int LightStatus = 0;
 // Setup function
 //--------------------------------------------------------------------------------
 void setup() {
-#if DEBUG
   Serial.begin(9600);
   Serial.print("Start....");
   while (!Serial) ; // wait for serial
   delay(200);
-#endif
-  
+
   //--------------------------------------------------------------------------------
   // Initialize Timer
   setSyncProvider(RTC.get);
   setSyncInterval(1800);
 
-  
   //--------------------------------------------------------------------------------
   // Initialize LCD1602 I2C display model
   lcd.init();
@@ -107,29 +101,37 @@ void setup() {
 
   //--------------------------------------------------------------------------------
   // Initialize DS1802 Temperature model
-//  sensors.begin();
+  //  sensors.begin();
 
   //--------------------------------------------------------------------------------
   // Initialize I/O PIN for HC-SR501 PIR Sensor
-  pinMode(PIR_IN_PIN, INPUT);
+//  pinMode(PIR_IN_PIN, INPUT);
 
   //--------------------------------------------------------------------------------
   // Initialize I/O PIN for Light Relay
   pinMode(LIGHT_RELAY_OUT_PIN, OUTPUT);
-  lcd.setCursor(0, 0);
-  lcd.print("Connecting...");
+
   //--------------------------------------------------------------------------------
-  // Initialize ESP8266 ESP-01 for AT command check, set SNTP config, and get AP
+  // Initialize ESP8266 ESP-01 for AT command check
+  lcd.setCursor(0, 0);
+  lcd.print("ExecAT...");
   while (!Esp01.ExecAT()) {
     delay(2000);
   }
+
+  //--------------------------------------------------------------------------------
+  // Initialize ESP8266 ESP-01 to connect AP
+  Esp01.SetATCWJAPDEF("NoInternet_2.4G", "0912841613");
   
-  Esp01.SetATCWJAPDEF("NoInternet_2.4G","0912841613");
+  //--------------------------------------------------------------------------------
+  // Initialize ESP8266 ESP-01 for AT command check to set SNTP config  
   while (Esp01.SetATCIPSNTPCFG() == "None") {
     delay(2000);
   }
   delay(2000);
 
+  //--------------------------------------------------------------------------------
+  // Initialize ESP8266 ESP-01 for AT command to get AP  
   int Counter = 0;
   while (Counter < 20) {
     lcd.setCursor(0, 0);
@@ -145,26 +147,34 @@ void setup() {
     Counter++;
   }
   SynSntpTimeToRtc();
+
   //--------------------------------------------------------------------------------
   // Initialize I/O PIN for Fish Feeder
   myservo.attach(FEEDER_OUT_PIN);
   myservo.write(00);
-//  pinMode(FEEDER_OUT_PIN, OUTPUT);
+  delay(1000);
+  myservo.write(40);
+  delay(1000);
+  myservo.write(00);
+
+  //--------------------------------------------------------------------------------
+  // Initialize TM1637 brightness
+  TM1637Display.setBrightness(0xA);
   
-  SynSntpTimeToRtc();
   //--------------------------------------------------------------------------------
   // Create Daily Alarm
   AlarmCreate(14, 30, 0, Daily, LightOn);    // 14:30 every day
   AlarmCreate(20, 30, 0, Daily, LightOff);   // 20:30 every day
 
   // Create Daily Alarm for Feeder
-  AlarmCreate(15, 00, 0, Daily, FeederOn);
-  AlarmCreate(17, 00, 0, Daily, FeederOn);
-  AlarmCreate(19, 00, 0, Daily, FeederOn);
+  AlarmCreate(12, 20, 0, Daily, FeederOn);
+  AlarmCreate(14, 20, 0, Daily, FeederOn);
+  AlarmCreate(16, 20, 0, Daily, FeederOn);
+  AlarmCreate(18, 20, 0, Daily, FeederOn);
   AlarmCreate(20, 20, 0, Daily, FeederOn);
-  
+
   // Set Alarm for Sync Time
-  AlarmCreate(7, 30, 0, Daily, SynSntpTimeToRtc);   // 7:30 every day
+  AlarmCreate(20, 30, 0, Daily, SynSntpTimeToRtc);   // 20:30 every day
 
   //--------------------------------------------------------------------------------
   // Create Timer Alarm
@@ -173,7 +183,7 @@ void setup() {
   AlarmCreate(0, 0, 60, Timer, Repeat60sec);      // 60 seccond/1 minute
 
   //--------------------------------------------------------------------------------
-  // Update information
+  // Update Light ON/OFF status
   if (makeTime(14, 30, 0, day(), month(), year()) < now() && now() < makeTime(20, 30, 0, day(), month(), year())) {
     delay(2000); // Refresh tm cache
     LightOn();
@@ -181,7 +191,9 @@ void setup() {
     delay(2000); // Refresh tm cache
     LightOff();
   }
-  display.setBrightness(0xA);
+
+  //--------------------------------------------------------------------------------
+  // Update information
   UpTM1367info();
   UpdateLcdInfo();
 }
@@ -211,9 +223,7 @@ void AlarmCreate(const int H, const int M, const int S, Alarm_Type CreateAlarmTy
     }
   }
   if (index == 10) {
-#if DEBUG
     Serial.println("Out of range");
-#endif
   }
 }
 
@@ -245,18 +255,12 @@ time_t updateNextTrigger(int AlarmListIndex)
 }
 
 void UpTM1367info() {
-// int k;
-//  for(k=0; k <= 4; k++) {
-//    display.showNumberDecEx(0, (0x80 >> k), true);
-//    delay(1000);
-//  }
-  
   String HH = ByteString(hour());
   String MM = ByteString(minute());
-  int  t =  HH.toInt()*100  + MM.toInt();
+  int  t =  HH.toInt() * 100  + MM.toInt();
 
   // 顯示時間
-  display.showNumberDecEx(t,0x80>>1, true);
+  TM1637Display.showNumberDecEx(t, 0x80 >> 1, true);
 
 }
 
@@ -266,17 +270,18 @@ void UpdateLcdInfo() {
   lcd.print(String(year()) + "-" + ByteString(month()) + "-" + ByteString(day()) + " " + ByteString(hour()) + ":" + ByteString(minute()));
 
   // Update Temperatures on LCD1602
-//  sensors.requestTemperatures();
-  lcd.setCursor(0, 1);
-//  lcd.write(0x01);
-//  lcd.print(" ");
-//  lcd.print(sensors.getTempCByIndex(0));// 取得溫度讀數（攝氏）並輸出， 參數0代表匯流排上第0個1-Wire裝置
-//  lcd.write(0xDF);
-//  lcd.print("C");
+  //  sensors.requestTemperatures();
+  //  lcd.setCursor(0, 1); 
+  //  lcd.write(0x01); //print this char-->lcd.createChar(1, termometru); 
+  //  lcd.print(" ");
+  //  lcd.print(sensors.getTempCByIndex(0));// 取得溫度讀數（攝氏）並輸出， 參數0代表匯流排上第0個1-Wire裝置
+  //  lcd.write(0xDF);
+  //  lcd.print("C");
 
   // Update Light Status
+  lcd.setCursor(0, 1);
   lcd.print("      ");
-  lcd.write(0x02);
+  lcd.write(0x02);  //print this char--> lcd.createChar(2, picatura);
   if (LightStatus == 1) {
     lcd.print(" ON ");
   } else {
@@ -293,13 +298,11 @@ String ByteString(int Num) {
 }
 void digitalClockDisplay(String Str) {
   // digital clock display of the time
-#if DEBUG  
   if (Str == "") {
     Serial.println(String(year()) + "-" + ByteString(month()) + "-" + ByteString(day()) + " " + ByteString(hour()) + ":" + ByteString(minute()) + ":" + ByteString(second()));
   } else {
     Serial.println(String(year()) + "-" + ByteString(month()) + "-" + ByteString(day()) + " " + ByteString(hour()) + ":" + ByteString(minute()) + ":" + ByteString(second()) + " " + Str);
   }
-#endif
 }
 
 void LightOn() {
@@ -325,54 +328,47 @@ void FeederOn() {
   myservo.write(00);
 }
 
-void FeederOff() {
-  digitalClockDisplay("[Feeder] Fish Feeder End");
-  digitalWrite(FEEDER_OUT_PIN, LOW);
-}
-
 void SynSntpTimeToRtc() {
   digitalClockDisplay("[Sync] SNTP Time");
   if (Esp01.QueryATCWJAPCUR() != "No AP") {
     String SntpTime;
     SntpTime = Esp01.GetSntpTime();
-#if DEBUG
     Serial.print("SNTP : ");
     Serial.println(SntpTime);
-#endif
     if (SNTP_YEAR(SntpTime).toInt() != 1970) {
       RTC.set(makeTime(SNTP_HOUR(SntpTime).toInt(), SNTP_MIN(SntpTime).toInt(), SNTP_SEC(SntpTime).toInt(), SNTP_DAY(SntpTime).toInt(), SNTP_MONTH(SntpTime).toInt(), SNTP_YEAR(SntpTime).toInt()));
     }
   }
 }
 
-void Repeat1sec() {
-  digitalClockDisplay("");
-  //  lcd.setCursor(0, 0);
-  //  lcd.print(String(year()) + "-" + ByteString(month()) + "-" + ByteString(day()));
-  //  lcd.setCursor(0, 1);
-  //  lcd.print(ByteString(hour()) + ":" + ByteString(minute()) + ":" + ByteString(second()));
-  //  Serial.println("-------");
-  //  tmElements_t tm;
-  //  RTC.read(tm);
-  //  lcd.setCursor(0, 0);
-  //  lcd.print(String(tmYearToCalendar(tm.Year)) + "-" + ByteString(tm.Month) + "-" + ByteString(tm.Day));
-  //  lcd.setCursor(0, 1);
-  //  lcd.print(ByteString(tm.Hour) + ":" + ByteString(tm.Minute) + ":" + ByteString(tm.Second));
-  //  Serial.println(String(tmYearToCalendar(tm.Year)) + "-" + ByteString(tm.Month) + "-" + ByteString(tm.Day) + " " + ByteString(tm.Hour) + ":" + ByteString(tm.Minute) + ":" + ByteString(tm.Second));
-}
+//void Repeat1sec() {
+//  digitalClockDisplay("");
+//    lcd.setCursor(0, 0);
+//    lcd.print(String(year()) + "-" + ByteString(month()) + "-" + ByteString(day()));
+//    lcd.setCursor(0, 1);
+//    lcd.print(ByteString(hour()) + ":" + ByteString(minute()) + ":" + ByteString(second()));
+//    Serial.println("-------");
+//    tmElements_t tm;
+//    RTC.read(tm);
+//    lcd.setCursor(0, 0);
+//    lcd.print(String(tmYearToCalendar(tm.Year)) + "-" + ByteString(tm.Month) + "-" + ByteString(tm.Day));
+//    lcd.setCursor(0, 1);
+//    lcd.print(ByteString(tm.Hour) + ":" + ByteString(tm.Minute) + ":" + ByteString(tm.Second));
+//    Serial.println(String(tmYearToCalendar(tm.Year)) + "-" + ByteString(tm.Month) + "-" + ByteString(tm.Day) + " " + ByteString(tm.Hour) + ":" + ByteString(tm.Minute) + ":" + ByteString(tm.Second));
+//}
 
-void Repeat3sec() {
-  digitalClockDisplay("3 second timer");
-  int val = digitalRead(PIR_IN_PIN); //讀取 PIR 輸出
-  if (val == HIGH) { //PIR 有偵測到時
-    digitalClockDisplay("3 second timer [PIR = 1] LCD ON");
-    lcd.backlight();
-  } else {
-    //    digitalClockDisplay();
-    //    Serial.println("  3 second timer [PIR = 0] LCD OFF");
-    lcd.noBacklight();
-  }
-}
+//void Repeat3sec() {
+//  digitalClockDisplay("3 second timer");
+//  int val = digitalRead(PIR_IN_PIN); //讀取 PIR 輸出
+//  if (val == HIGH) { //PIR 有偵測到時
+//    digitalClockDisplay("3 second timer [PIR = 1] LCD ON");
+//    lcd.backlight();
+//  } else {
+//    //    digitalClockDisplay();
+//    //    Serial.println("  3 second timer [PIR = 0] LCD OFF");
+//    lcd.noBacklight();
+//  }
+//}
 
 void Repeat60sec() {
   digitalClockDisplay("60 second timer");
