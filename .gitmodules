@@ -40,3 +40,6 @@
 [submodule "libraries/TM1637"]
 	path = libraries/TM1637
 	url = https://github.com/avishorp/TM1637.git
+[submodule "libraries/DHT-sensor-library"]
+	path = libraries/DHT-sensor-library
+	url = https://github.com/adafruit/DHT-sensor-library.git
