@@ -14,3 +14,7 @@
 | TimeAlarms | https://github.com/PaulStoffregen/TimeAlarms.git |
 | ESP8266 | https://github.com/itead/ITEADLIB_Arduino_WeeESP8266.git |
 | TM1637 | https://github.com/avishorp/TM1637.git |
+| DHT | https://github.com/adafruit/DHT-sensor-library.git |
+| Adafruit_Sensor | https://github.com/adafruit/Adafruit_Sensor.git |
+
+
