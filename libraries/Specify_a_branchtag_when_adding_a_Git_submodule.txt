@@ -1,0 +1,14 @@
+cd /d D:\Arduino_
+git pull
+
+git submodule add https://github.com/adafruit/DHT-sensor-library.git libraries/DHT-sensor-library
+
+cd libraries/DHT-sensor-library
+
+git checkout ce31485de7dfd7532957d68c099ed2b23c1ce694
+cd ..\..
+
+git commit -a -m "Commit submodule DHT-sensor-library with v1.4.3(ce31485de7dfd7532957d68c099ed2b23c1ce694)"
+
+git push
+
