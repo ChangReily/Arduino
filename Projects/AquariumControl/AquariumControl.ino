@@ -156,35 +156,37 @@ void setup() {
   myservo.write(40);
   delay(1000);
   myservo.write(00);
+  delay(1000);
+  myservo.detach();
 
   //--------------------------------------------------------------------------------
   // Initialize TM1637 brightness
-  TM1637Display.setBrightness(0xA);
-  
-  //--------------------------------------------------------------------------------
-  // Create Daily Alarm
-  AlarmCreate(14, 30, 0, Daily, LightOn);    // 14:30 every day
-  AlarmCreate(20, 30, 0, Daily, LightOff);   // 20:30 every day
-
-  // Create Daily Alarm for Feeder
-  AlarmCreate(12, 20, 0, Daily, FeederOn);
-  AlarmCreate(14, 20, 0, Daily, FeederOn);
-  AlarmCreate(16, 20, 0, Daily, FeederOn);
-  AlarmCreate(18, 20, 0, Daily, FeederOn);
-  AlarmCreate(20, 20, 0, Daily, FeederOn);
-
-  // Set Alarm for Sync Time
-  AlarmCreate(20, 30, 0, Daily, SynSntpTimeToRtc);   // 20:30 every day
+  TM1637Display.setBrightness(0x7);
 
   //--------------------------------------------------------------------------------
   // Create Timer Alarm
   //AlarmCreate(0, 0, 1, Timer, Repeat1sec);   // 1 seccond
   //AlarmCreate(0, 0, 3, Timer, Repeat3sec);        // 3 seccond
   AlarmCreate(0, 0, 60, Timer, Repeat60sec);      // 60 seccond/1 minute
+  
+  //--------------------------------------------------------------------------------
+  // Create Daily Alarm
+  AlarmCreate(14, 19, 0, Daily, LightOn);    // 14:30 every day
+  AlarmCreate(20, 30, 0, Daily, LightOff);   // 20:30 every day
+
+  // Create Daily Alarm for Feeder
+  AlarmCreate(12, 20, 2, Daily, FeederOn);
+  AlarmCreate(14, 20, 2, Daily, FeederOn);
+  AlarmCreate(16, 20, 2, Daily, FeederOn);
+  AlarmCreate(18, 20, 2, Daily, FeederOn);
+  AlarmCreate(20, 20, 2, Daily, FeederOn);
+
+  // Set Alarm for Sync Time
+  AlarmCreate(20, 30, 0, Daily, SynSntpTimeToRtc);   // 20:30 every day
 
   //--------------------------------------------------------------------------------
   // Update Light ON/OFF status
-  if (makeTime(14, 30, 0, day(), month(), year()) < now() && now() < makeTime(20, 30, 0, day(), month(), year())) {
+  if (makeTime(14, 19, 0, day(), month(), year()) < now() && now() < makeTime(20, 30, 0, day(), month(), year())) {
     delay(2000); // Refresh tm cache
     LightOn();
   } else {
@@ -323,9 +325,12 @@ void LightOff() {
 
 void FeederOn() {
   digitalClockDisplay("[Feeder] Fish Feeder Start");
+  myservo.attach(FEEDER_OUT_PIN);
   myservo.write(40);
   delay(1000);
   myservo.write(00);
+  delay(1000);
+  myservo.detach();
 }
 
 void SynSntpTimeToRtc() {
