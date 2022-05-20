@@ -1,14 +1,14 @@
 cd /d D:\Arduino
 git pull
 
-git submodule add https://github.com/arduino-libraries/NTPClient.git libraries/NTPClient
+git submodule add https://github.com/knolleary/pubsubclient.git libraries/pubsubclient
 
-cd libraries/NTPClient
+cd libraries/pubsubclient
 
-git checkout 78d4237b3ae12d801ccf48c5f86f48ef3720d2b4
+git checkout 2d228f2f862a95846c65a8518c79f48dfc8f188c
 cd ..\..
 
-git commit -a -m "Commit submoduleNTPClient with 3.2.1(78d4237b3ae12d801ccf48c5f86f48ef3720d2b4)"
+git commit -a -m "Commit submodule pubsubclient with v2.8(2d228f2f862a95846c65a8518c79f48dfc8f188c)"
 
 git push
 

@@ -55,3 +55,6 @@
 [submodule "libraries/NTPClient"]
 	path = libraries/NTPClient
 	url = https://github.com/arduino-libraries/NTPClient.git
+[submodule "libraries/pubsubclient"]
+	path = libraries/pubsubclient
+	url = https://github.com/knolleary/pubsubclient.git
