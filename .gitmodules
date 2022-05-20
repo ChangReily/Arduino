@@ -52,3 +52,6 @@
 [submodule "libraries/Adafruit_BusIO"]
 	path = libraries/Adafruit_BusIO
 	url = https://github.com/adafruit/Adafruit_BusIO.git
+[submodule "libraries/NTPClient"]
+	path = libraries/NTPClient
+	url = https://github.com/arduino-libraries/NTPClient.git

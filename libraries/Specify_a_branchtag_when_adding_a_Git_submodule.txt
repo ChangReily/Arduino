@@ -1,14 +1,14 @@
 cd /d D:\Arduino
 git pull
 
-git submodule add https://github.com/adafruit/Adafruit_BusIO.git libraries/Adafruit_BusIO
+git submodule add https://github.com/arduino-libraries/NTPClient.git libraries/NTPClient
 
-cd libraries/Adafruit_BusIO
+cd libraries/NTPClient
 
-git checkout 515f63f49c7f6cfe7c189987e4959d99a2039cb4
+git checkout 78d4237b3ae12d801ccf48c5f86f48ef3720d2b4
 cd ..\..
 
-git commit -a -m "Commit submodule Adafruit_BusIO with 1.11.6(515f63f49c7f6cfe7c189987e4959d99a2039cb4)"
+git commit -a -m "Commit submoduleNTPClient with 3.2.1(78d4237b3ae12d801ccf48c5f86f48ef3720d2b4)"
 
 git push
 
