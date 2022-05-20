@@ -1,14 +1,14 @@
-cd /d D:\Arduino_
+cd /d D:\Arduino
 git pull
 
-git submodule add https://github.com/adafruit/DHT-sensor-library.git libraries/DHT-sensor-library
+git submodule add https://github.com/plapointe6/EspMQTTClient.git
 
-cd libraries/DHT-sensor-library
+cd libraries/EspMQTTClient
 
-git checkout ce31485de7dfd7532957d68c099ed2b23c1ce694
+git checkout fe7e9530e4c95caacfbe94f9fa556f65fd38cefd
 cd ..\..
 
-git commit -a -m "Commit submodule DHT-sensor-library with v1.4.3(ce31485de7dfd7532957d68c099ed2b23c1ce694)"
+git commit -a -m "Commit submodule EspMQTTClient with 1.13.3(fe7e9530e4c95caacfbe94f9fa556f65fd38cefd)"
 
 git push
 

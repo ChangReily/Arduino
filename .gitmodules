@@ -46,3 +46,6 @@
 [submodule "libraries/Adafruit_Sensor"]
 	path = libraries/Adafruit_Sensor
 	url = https://github.com/adafruit/Adafruit_Sensor.git
+[submodule "libraries/EspMQTTClient"]
+	path = libraries/EspMQTTClient
+	url = https://github.com/plapointe6/EspMQTTClient.git
