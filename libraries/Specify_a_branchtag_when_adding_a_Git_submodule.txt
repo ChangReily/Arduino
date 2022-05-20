@@ -1,14 +1,14 @@
 cd /d D:\Arduino
 git pull
 
-git submodule add https://github.com/plapointe6/EspMQTTClient.git
+git submodule add https://github.com/adafruit/Adafruit_BusIO.git libraries/Adafruit_BusIO
 
-cd libraries/EspMQTTClient
+cd libraries/Adafruit_BusIO
 
-git checkout fe7e9530e4c95caacfbe94f9fa556f65fd38cefd
+git checkout 515f63f49c7f6cfe7c189987e4959d99a2039cb4
 cd ..\..
 
-git commit -a -m "Commit submodule EspMQTTClient with 1.13.3(fe7e9530e4c95caacfbe94f9fa556f65fd38cefd)"
+git commit -a -m "Commit submodule Adafruit_BusIO with 1.11.6(515f63f49c7f6cfe7c189987e4959d99a2039cb4)"
 
 git push
 
