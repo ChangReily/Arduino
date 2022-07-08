@@ -1,3 +1,4 @@
+#include <Adafruit_ADS1X15.h>
 #include <ArduinoJson.h>  // Arduino Jason v5
 #include <ArduinoSort.h>
 #include <DallasTemperature.h>
@@ -6,7 +7,6 @@
 #include <FS.h>
 #include <NTPClient.h>
 #include <OneWire.h>
-#include <Adafruit_ADS1X15.h>
 
 EspMQTTClient client("NoInternet_2.4G",  // Wi-Fi AP name
                      "0912841613",       // Wi-Fi Password
@@ -54,7 +54,7 @@ float gTdsVoltage;
 float gCalibrateTdsTarget;
 float gTdsValue = 0;
 float gTdsKValue = 1;
-float gTdsFactor = 0.5; 
+float gTdsFactor = 0.5;
 
 // TDS Array
 #define TDS_ARRAY_LENGTH 10
@@ -70,14 +70,27 @@ float gTemperatureArray[TEMPERATURE_ARRAY_LENGTH];  // Store the average value o
 int gTemperatureArrayIndex = 0;
 
 // Aquarium Control State
-enum Control_State { NormalMode, EnterPhCalibrateMode, Ph4CalibrateMode, Ph7CalibrateMode, PhCalculateMode, EnterTdsCalibrateMode, TdsCalibrateMode, TdsCalculateMode };
+enum Control_State {
+  NormalMode,
+  EnterPhCalibrateMode,
+  Ph4CalibrateMode,
+  Ph7CalibrateMode,
+  PhCalculateMode,
+  EnterTdsCalibrateMode,
+  TdsCalibrateMode,
+  TdsCalculateMode
+};
 // Aquarium Control State
 Control_State gState = NormalMode;
 
 // Relay time calculate
 #define CAL_TIME_SECS(Hours, Minutes, Seconds) (Hours * 60 * 60 + Minutes * 60 + Seconds)
 // Relay web Control State
-enum RELAY_CONTROL_STATE { FORCE_ON, FORCE_OFF, AUTO};
+enum RELAY_CONTROL_STATE { 
+  FORCE_ON, 
+  FORCE_OFF, 
+  AUTO 
+};
 
 // Light on/off time
 int gLightOnHour = 14;
@@ -121,7 +134,7 @@ void setup(void) {
     gPhOffset = 16.06050;
 
     gTdsKValue = 1;
-    
+
     gLightOnHour = 14;
     gLightOnMin = 30;
     gLightOffHour = 20;
@@ -227,12 +240,9 @@ void onConnectionEstablished() {
   client.subscribe("Aquarium/SetCo2TimeCmd", ProcessSetCo2TimeCmd);
   client.subscribe("Aquarium/ControlCo2Cmd", ProcessControlCo2Cmd);
   client.subscribe("Aquarium/TdsCalibrateCmd", ProcessTdsCalibrateCmd);
-  
+
   client.publish(MqttDebugTopic, gtimeClient.getFormattedTime());
 
-  int mCurrentTimeSecs = CAL_TIME_SECS(gtimeClient.getHours(), gtimeClient.getMinutes(), gtimeClient.getSeconds());
-  int mLightOnTimeSecs = CAL_TIME_SECS(gLightOnHour, gLightOnMin, 0);
-  int mLightOffTimeSecs = CAL_TIME_SECS(gLightOffHour, gLightOffMin, 0);
 }
 
 // ----------------------------------------------------------------------------
@@ -320,7 +330,7 @@ bool SaveConfig() {
   ConfigJson["gPhOffset"] = gPhOffset;
 
   ConfigJson["gTdsKValue"] = gTdsKValue;
-  
+
   ConfigJson["gLightOnHour"] = gLightOnHour;
   ConfigJson["gLightOnMin"] = gLightOnMin;
   ConfigJson["gLightOffHour"] = gLightOffHour;
@@ -368,7 +378,7 @@ void onProcessMessageReceivedWithTopic(const String& topicStr, const String& mes
   } else if (message.equals("EnterTdsCalibrateMode")) {
     client.publish(MqttDebugTopic, "Change gState to EnterTdsCalibrateMode");
     gState = EnterTdsCalibrateMode;
-  }else if (message.equals("RESET")) {
+  } else if (message.equals("RESET")) {
     client.publish(MqttDebugTopic, "Reset ESP32 device");
     resetFunc();  // call reset
   } else if (message.equals("RequestLightSetting")) {
@@ -531,17 +541,17 @@ void NormalLoop() {
     // Read PH
     adc0 = gAds1115.readADC_SingleEnded(0);
     volts0 = gAds1115.computeVolts(adc0);
-    gPhArray[gPhArrayIndex]=volts0;
+    gPhArray[gPhArrayIndex] = volts0;
     // gPhArray[gPhArrayIndex] = random(0, 100);
     gPhArrayIndex++;
     if (gPhArrayIndex == PH_ARRAY_LENGTH) {
       gPhArrayIndex = 0;
     }
-    
+
     // Read TDS
     adc1 = gAds1115.readADC_SingleEnded(1);
     volts1 = gAds1115.computeVolts(adc1);
-    gTdsArray[gTdsArrayIndex]=volts1;
+    gTdsArray[gTdsArrayIndex] = volts1;
     // gTdsArray[gTdsArrayIndex] = random(0, 100);
     gTdsArrayIndex++;
     if (gTdsArrayIndex == TDS_ARRAY_LENGTH) {
@@ -573,11 +583,11 @@ void NormalLoop() {
 
     // Publish TDS Value
     mTdsVoltage = AvergeSensorSamplingArray(gTdsArray, TDS_ARRAY_LENGTH);
-    mEcValue = (133.42*mTdsVoltage*mTdsVoltage*mTdsVoltage - 255.86*mTdsVoltage*mTdsVoltage + 857.39*mTdsVoltage)*gTdsKValue;
-    mEcValue25  =  mEcValue / (1.0+0.02*(gTemperatureValue-25.0));  //temperature compensation
+    mEcValue = (133.42 * mTdsVoltage * mTdsVoltage * mTdsVoltage - 255.86 * mTdsVoltage * mTdsVoltage + 857.39 * mTdsVoltage) * gTdsKValue;
+    mEcValue25 = mEcValue / (1.0 + 0.02 * (gTemperatureValue - 25.0));  // temperature compensation
     gTdsValue = mEcValue25 * gTdsFactor;
 
-    // Publish 
+    // Publish
     String MsgStr = "";
     MsgStr = MsgStr + "{\"temp\":" + gTemperatureValue + ", " + "\"ph\":" + gPhValue + ", " + "\"tds\":" + gTdsValue + ", " + "\"light\":" + gLightRelay + ", " + "\"co2\":" + gCo2Relay + "}";
     client.publish("Aquarium/SendData", MsgStr);
@@ -610,7 +620,7 @@ void PhCalibrateLoop() {
     float volts0;
     adc0 = gAds1115.readADC_SingleEnded(0);
     volts0 = gAds1115.computeVolts(adc0);
-    mPhVoltageRead=volts0;
+    mPhVoltageRead = volts0;
 
     // Publish the message
     if (gState == Ph4CalibrateMode) {
@@ -642,7 +652,7 @@ void PhCalibrateLoop() {
       }
       client.publish(MqttDebugTopic, "..");
       client.publish(MqttDebugTopic, "Start Calculating....");
-     
+
       gPhArrayIndex = 0;
       gState = PhCalculateMode;
     }
@@ -675,7 +685,7 @@ void PhCalculate() {
 
 // ----------------------------------------------------------------------------
 // void ProcessTdsCalibrateCmd(const String& topicStr, const String& message)
-//  3Callback function for Subscribe to "Aquarium/SendCmd"
+//  Callback function for Subscribe to "Aquarium/SendCmd"
 // ----------------------------------------------------------------------------
 void ProcessTdsCalibrateCmd(const String& topicStr, const String& message) {
   // Serial.println("message received from " + topicStr + ": " + message);
@@ -683,10 +693,9 @@ void ProcessTdsCalibrateCmd(const String& topicStr, const String& message) {
     client.publish(MqttDebugTopic, "Please enter ppm TEXT box...");
     return;
   }
-  gState =TdsCalibrateMode;
-  gCalibrateTdsTarget=message.toInt();
-  client.publish(MqttDebugTopic, "Start TDS Calibrate with " + message +" ppm...");
-
+  gState = TdsCalibrateMode;
+  gCalibrateTdsTarget = message.toInt();
+  client.publish(MqttDebugTopic, "Start TDS Calibrate with " + message + " ppm...");
 }
 // ----------------------------------------------------------------------------
 // void TdsCalibrateLoop()
@@ -725,7 +734,7 @@ void TdsCalibrateLoop() {
       client.publish(MqttDebugTopic, "TDS Sampling Done..");
       client.publish(MqttDebugTopic, "  ");
       client.publish(MqttDebugTopic, "Start Calculating....");
-     
+
       gTdsArrayIndex = 0;
       gState = TdsCalculateMode;
     }
@@ -741,23 +750,22 @@ void TdsCalculate() {
   // 1 ms/cm=1000 uS/cm
   // 1ppm(TDS)=1mg/L=2uS/cm
   // -----------------------------
-  // | EC    | 美 TDS  | 歐 TDS  | 
+  // | EC    | 美 TDS  | 歐 TDS  |
   // -----------------------------
   // | mS/cm | 0.5ppm  | 0.64ppm |
   // -----------------------------
   float mTargetEc;
-  
-  mTargetEc = gCalibrateTdsTarget/gTdsFactor;
-  mTargetEc = mTargetEc*(1.0+0.02*(gTemperatureValue-25.0)); 
 
-  gTdsKValue = mTargetEc/(133.42*gTdsVoltage*gTdsVoltage*gTdsVoltage - 255.86*gTdsVoltage*gTdsVoltage + 857.39*gTdsVoltage);
+  mTargetEc = gCalibrateTdsTarget / gTdsFactor;
+  mTargetEc = mTargetEc * (1.0 + 0.02 * (gTemperatureValue - 25.0));
+
+  gTdsKValue = mTargetEc / (133.42 * gTdsVoltage * gTdsVoltage * gTdsVoltage - 255.86 * gTdsVoltage * gTdsVoltage + 857.39 * gTdsVoltage);
   client.publish(MqttDebugTopic, "gTdsKValue: " + String(gTdsKValue));
   client.publish(MqttDebugTopic, "TDS Calibrating Done..");
   SaveConfig();
   client.publish(MqttDebugTopic, "Saving Calibration Data!");
   gState = NormalMode;
 }
-
 
 // ----------------------------------------------------------------------------
 // void AvergeSensorSamplingArray()
@@ -783,20 +791,20 @@ float AvergeSensorSamplingArray(float* Array, int ArrayNumber) {
 
   sortArray(Array, ArrayNumber);
 
-//   Index = 0;
-//   while (Index < ArrayNumber) {
-//     if (Index < ArrayNumber-1) {
-//       mMessage = mMessage + Array[Index] + ", ";
-//     } else {
-//       mMessage = mMessage + Array[Index];
-//     }
-//     Index++;
-//   }
-//   client.publish(MqttDebugTopic, mMessage);
+  //   Index = 0;
+  //   while (Index < ArrayNumber) {
+  //     if (Index < ArrayNumber-1) {
+  //       mMessage = mMessage + Array[Index] + ", ";
+  //     } else {
+  //       mMessage = mMessage + Array[Index];
+  //     }
+  //     Index++;
+  //   }
+  //   client.publish(MqttDebugTopic, mMessage);
 
   for (Index = 1; Index < ArrayNumber - 1; Index++) {
     Amount += Array[Index];
-  }  
+  }
   Avg = (float)Amount / (ArrayNumber - 2);
   return Avg;
 }
