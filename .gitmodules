@@ -58,3 +58,6 @@
 [submodule "libraries/pubsubclient"]
 	path = libraries/pubsubclient
 	url = https://github.com/knolleary/pubsubclient.git
+[submodule "libraries/Adafruit_ADS1X15"]
+	path = libraries/Adafruit_ADS1X15
+	url = https://github.com/adafruit/Adafruit_ADS1X15.git
