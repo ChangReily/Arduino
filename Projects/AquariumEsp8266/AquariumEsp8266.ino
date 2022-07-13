@@ -24,10 +24,10 @@ NTPClient gtimeClient(ntpUDP);
 Adafruit_ADS1115 gAds1115;
 
 // PIN mapping define
-#define LIGHT_RELAY_PIN 15          // D8 /GPIO15
-#define LIGHT_SWITCH_PIN 13         // D7 /GPIO13
+#define LIGHT_RELAY_PIN 14          // D5 /GPIO14
+// #define LIGHT_SWITCH_PIN 13         // D7 /GPIO13
 #define CO2_RELAY_PIN 12            // D6 /GPIO12
-#define CO2_SWITCH_PIN 14           // D5 /GPIO14
+// #define CO2_SWITCH_PIN 15           // D8 /GPIO15
 #define TEMPERATURE_IN_WATER_PIN 2  // D4 /GPIO2
 // GPIO6.GPIO7.GPIO8.GPIO9.GPIO10.GPIO11 are used for internal SPI rom.
 
@@ -161,11 +161,13 @@ void setup(void) {
 
   // Set up Ligh control GPIO pin
   pinMode(LIGHT_RELAY_PIN, OUTPUT);
-  pinMode(LIGHT_SWITCH_PIN, INPUT_PULLUP);
+  digitalWrite(LIGHT_RELAY_PIN, HIGH); 
+  // pinMode(LIGHT_SWITCH_PIN, INPUT_PULLUP);
 
   // Set up CO2 control GPIO pin
   pinMode(CO2_RELAY_PIN, OUTPUT);
-  pinMode(CO2_SWITCH_PIN, INPUT_PULLUP);
+  digitalWrite(CO2_RELAY_PIN, HIGH);
+  // pinMode(CO2_SWITCH_PIN, INPUT_PULLUP);
 
   // gAds1115.begin(0x48);
   if (!gAds1115.begin(0x48)) {
@@ -234,7 +236,7 @@ void onConnectionEstablished() {
   Serial.println(gtimeClient.getFormattedTime());
 
   // Subscribe to "Aquarium/SendCmd" and declare callback function
-  client.subscribe("Aquarium/SendCmd", onProcessMessageReceivedWithTopic);
+  client.subscribe("Aquarium/SendCmd", ProcessSendcmd);
   client.subscribe("Aquarium/SetLightTimeCmd", ProcessSetLightTimeCmd);
   client.subscribe("Aquarium/ControlLightCmd", ProcessControlLightCmd);
   client.subscribe("Aquarium/SetCo2TimeCmd", ProcessSetCo2TimeCmd);
@@ -357,10 +359,10 @@ bool SaveConfig() {
 }
 
 // ----------------------------------------------------------------------------
-// void onProcessMessageReceivedWithTopic(const String& topicStr, const String& message)
+// void ProcessSendcmd(const String& topicStr, const String& message)
 //   Callback function for Subscribe to "Aquarium/SendCmd"
 // ----------------------------------------------------------------------------
-void onProcessMessageReceivedWithTopic(const String& topicStr, const String& message) {
+void ProcessSendcmd(const String& topicStr, const String& message) {
   // Serial.println("message received from " + topicStr + ": " + message);
   // client.publish(MqttDebugTopic, ".");
   if (message.equals("PH4")) {
@@ -380,6 +382,7 @@ void onProcessMessageReceivedWithTopic(const String& topicStr, const String& mes
     gState = EnterTdsCalibrateMode;
   } else if (message.equals("RESET")) {
     client.publish(MqttDebugTopic, "Reset ESP32 device");
+    delay(1000);
     resetFunc();  // call reset
   } else if (message.equals("RequestLightSetting")) {
     String MsgStr = "";
@@ -815,7 +818,7 @@ float AvergeSensorSamplingArray(float* Array, int ArrayNumber) {
 // ----------------------------------------------------------------------------
 void Co2RelayControl() {
   bool mCo2yStatus = false;
-  int mCo2ButtonState = 0;
+  // int mCo2ButtonState = 0;
   int CurrentTimeSecs = CAL_TIME_SECS(gtimeClient.getHours(), gtimeClient.getMinutes(), gtimeClient.getSeconds());
   int gCo2OnTimeSecs = CAL_TIME_SECS(gCo2OnHour, gCo2OnMin, 0);
   int gCo2OffTimeSecs = CAL_TIME_SECS(gCo2OffHour, gCo2OffMin, 0);
@@ -827,30 +830,31 @@ void Co2RelayControl() {
   }
 
   // Read button status
-  mCo2ButtonState = digitalRead(CO2_SWITCH_PIN);
+  // mCo2ButtonState = digitalRead(CO2_SWITCH_PIN);
 
-  if (mCo2ButtonState == LOW) {  // Button is pressed
-    client.publish(MqttDebugTopic, "Pass Relay...");
-    digitalWrite(CO2_RELAY_PIN, HIGH);
-    gCo2Relay = true;
-  } else if (gCo2ForceControl != AUTO) {
+  // if (mCo2ButtonState == LOW) {  // Button is pressed
+  //   client.publish(MqttDebugTopic, "CO2 Pass Relay...");
+  //   digitalWrite(CO2_RELAY_PIN, HIGH);
+  //   gCo2Relay = true;
+  // } else 
+  if (gCo2ForceControl != AUTO) {
     gCo2Relay = (gCo2ForceControl == FORCE_ON) ? true : false;
     if (gCo2Relay == true) {
       client.publish(MqttDebugTopic, "CO2 Web force On");
-      digitalWrite(CO2_RELAY_PIN, HIGH);
+      digitalWrite(CO2_RELAY_PIN, LOW);
     } else {
       client.publish(MqttDebugTopic, "CO2 Web force Off");
-      digitalWrite(CO2_RELAY_PIN, LOW);
+      digitalWrite(CO2_RELAY_PIN, HIGH);
     }
   } else {  // Button is not pressed
     if (gCo2Relay != mCo2yStatus) {
       gCo2Relay = mCo2yStatus;
       if (gCo2Relay == true) {
         client.publish(MqttDebugTopic, "CO2 On");
-        digitalWrite(CO2_RELAY_PIN, HIGH);
+        digitalWrite(CO2_RELAY_PIN, LOW);
       } else {
         client.publish(MqttDebugTopic, "CO2 Off");
-        digitalWrite(CO2_RELAY_PIN, LOW);
+        digitalWrite(CO2_RELAY_PIN, HIGH);
       }
     }
   }
@@ -862,7 +866,7 @@ void Co2RelayControl() {
 // ----------------------------------------------------------------------------
 void LightRelayControl() {
   bool mLightyStatus = false;
-  int mLightButtonState = 0;
+  // int mLightButtonState = 0;
   int mCurrentTimeSecs = CAL_TIME_SECS(gtimeClient.getHours(), gtimeClient.getMinutes(), gtimeClient.getSeconds());
   int mLightOnTimeSecs = CAL_TIME_SECS(gLightOnHour, gLightOnMin, 0);
   int mLightOffTimeSecs = CAL_TIME_SECS(gLightOffHour, gLightOffMin, 0);
@@ -873,31 +877,32 @@ void LightRelayControl() {
     mLightyStatus = false;
   }
 
-  // Read button status
-  mLightButtonState = digitalRead(LIGHT_SWITCH_PIN);
-
-  if (mLightButtonState == LOW) {  // Button is pressed
-    client.publish(MqttDebugTopic, "Pass Relay...");
-    digitalWrite(LIGHT_RELAY_PIN, HIGH);
-    gLightRelay = true;
-  } else if (gLightForceControl != AUTO) {
+//   // Read button status
+//   mLightButtonState = digitalRead(LIGHT_SWITCH_PIN);
+// 
+//   if (mLightButtonState == LOW) {  // Button is pressed
+//     client.publish(MqttDebugTopic, "Light Pass Relay...");
+//     digitalWrite(LIGHT_RELAY_PIN, HIGH);
+//     gLightRelay = true;
+//   } else 
+  if (gLightForceControl != AUTO) {
     gLightRelay = (gLightForceControl == FORCE_ON) ? true : false;
     if (gLightRelay == true) {
       client.publish(MqttDebugTopic, "Light Web force On");
-      digitalWrite(LIGHT_RELAY_PIN, HIGH);
+      digitalWrite(LIGHT_RELAY_PIN, LOW);
     } else {
       client.publish(MqttDebugTopic, "Light Web force Off");
-      digitalWrite(LIGHT_RELAY_PIN, LOW);
+      digitalWrite(LIGHT_RELAY_PIN, HIGH);
     }
   } else {  // Button is not pressed
     if (gLightRelay != mLightyStatus) {
       gLightRelay = mLightyStatus;
       if (gLightRelay == true) {
         client.publish(MqttDebugTopic, "Light On");
-        digitalWrite(LIGHT_RELAY_PIN, HIGH);
+        digitalWrite(LIGHT_RELAY_PIN, LOW);
       } else {
         client.publish(MqttDebugTopic, "Light Off");
-        digitalWrite(LIGHT_RELAY_PIN, LOW);
+        digitalWrite(LIGHT_RELAY_PIN, HIGH);
       }
     }
   }
