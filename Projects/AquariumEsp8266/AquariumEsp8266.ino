@@ -45,7 +45,7 @@ float gPh7Voltage;
 // const float gTargetPh = 6.7;
 
 // PH Array
-#define PH_ARRAY_LENGTH 10
+#define PH_ARRAY_LENGTH 12
 float gPhArray[PH_ARRAY_LENGTH];  // Store the average value of the sensor feedback
 int gPhArrayIndex = 0;
 
@@ -57,7 +57,7 @@ float gTdsKValue = 1;
 float gTdsFactor = 0.5;
 
 // TDS Array
-#define TDS_ARRAY_LENGTH 10
+#define TDS_ARRAY_LENGTH 12
 float gTdsArray[TDS_ARRAY_LENGTH];  // Store the average value of the sensor feedback
 int gTdsArrayIndex = 0;
 
@@ -65,7 +65,7 @@ int gTdsArrayIndex = 0;
 float gTemperatureValue;
 
 // Temperature Array
-#define TEMPERATURE_ARRAY_LENGTH 10
+#define TEMPERATURE_ARRAY_LENGTH 12
 float gTemperatureArray[TEMPERATURE_ARRAY_LENGTH];  // Store the average value of the sensor feedback
 int gTemperatureArrayIndex = 0;
 
@@ -545,6 +545,8 @@ void NormalLoop() {
     adc0 = gAds1115.readADC_SingleEnded(0);
     volts0 = gAds1115.computeVolts(adc0);
     gPhArray[gPhArrayIndex] = volts0;
+    Str = "PhArray[" + String(gPhArrayIndex) + "] = "+ volts0;
+    client.publish("Aquarium/DebugPh", Str);
     // gPhArray[gPhArrayIndex] = random(0, 100);
     gPhArrayIndex++;
     if (gPhArrayIndex == PH_ARRAY_LENGTH) {
@@ -555,6 +557,8 @@ void NormalLoop() {
     adc1 = gAds1115.readADC_SingleEnded(1);
     volts1 = gAds1115.computeVolts(adc1);
     gTdsArray[gTdsArrayIndex] = volts1;
+    Str = "TdsArray[" + String(gTdsArrayIndex) + "] = "+ volts1;
+    client.publish("Aquarium/DebugTds", Str);
     // gTdsArray[gTdsArrayIndex] = random(0, 100);
     gTdsArrayIndex++;
     if (gTdsArrayIndex == TDS_ARRAY_LENGTH) {
@@ -569,7 +573,7 @@ void NormalLoop() {
       gTemperatureArrayIndex = 0;
     }
     Serial.println ("[PH][A0] ADC: "+ String(adc1) + ", Voltage: " + String(volts1) + " V.   [TDS][A1] ADC: "+ String(adc0) + ", Voltage: " + String(volts0)+ " V");
-
+  
   }
 
   if (CurrentMillis - Loop1minPreviousMillis >= 60000) {
@@ -578,14 +582,14 @@ void NormalLoop() {
     // client.publish(MqttDebugTopic, Str);
 
     // Publish PH Value
-    PhVoltage = AvergeSensorSamplingArray(gPhArray, PH_ARRAY_LENGTH);
+    PhVoltage = AvergeSensorSamplingArray(gPhArray, PH_ARRAY_LENGTH, "Aquanrium/DebugPh");
     gPhValue = gPhSlope * PhVoltage + gPhOffset;
 
     // Publish Temperature Value
-    gTemperatureValue = AvergeSensorSamplingArray(gTemperatureArray, TEMPERATURE_ARRAY_LENGTH);
+    gTemperatureValue = AvergeSensorSamplingArray(gTemperatureArray, TEMPERATURE_ARRAY_LENGTH, "Aquanrium/DebugTds");
 
     // Publish TDS Value
-    mTdsVoltage = AvergeSensorSamplingArray(gTdsArray, TDS_ARRAY_LENGTH);
+    mTdsVoltage = AvergeSensorSamplingArray(gTdsArray, TDS_ARRAY_LENGTH, "Aquanrium/DebugTemp");
     mEcValue = (133.42 * mTdsVoltage * mTdsVoltage * mTdsVoltage - 255.86 * mTdsVoltage * mTdsVoltage + 857.39 * mTdsVoltage) * gTdsKValue;
     mEcValue25 = mEcValue / (1.0 + 0.02 * (gTemperatureValue - 25.0));  // temperature compensation
     gTdsValue = mEcValue25 * gTdsFactor;
@@ -641,13 +645,13 @@ void PhCalibrateLoop() {
     // Calcute the average of array vale
     if (gPhArrayIndex == PH_ARRAY_LENGTH) {
       if (gState == Ph4CalibrateMode) {
-        gPh4Voltage = AvergeSensorSamplingArray(gPhArray, PH_ARRAY_LENGTH);
+        gPh4Voltage = AvergeSensorSamplingArray(gPhArray, PH_ARRAY_LENGTH, "NULL");
         mMessage = "gPh4Voltage: ";
         mMessage.concat(gPh4Voltage);
         client.publish(MqttDebugTopic, mMessage);
         client.publish(MqttDebugTopic, "PH4 Calibrating Done..");
       } else if (gState == Ph7CalibrateMode) {
-        gPh7Voltage = AvergeSensorSamplingArray(gPhArray, PH_ARRAY_LENGTH);
+        gPh7Voltage = AvergeSensorSamplingArray(gPhArray, PH_ARRAY_LENGTH, "NULL");
         mMessage = "gPh7Voltage: ";
         mMessage.concat(gPh7Voltage);
         client.publish(MqttDebugTopic, mMessage);
@@ -730,7 +734,7 @@ void TdsCalibrateLoop() {
 
     // Calcute the average of array vale
     if (gTdsArrayIndex == TDS_ARRAY_LENGTH) {
-      gTdsVoltage = AvergeSensorSamplingArray(gTdsArray, TDS_ARRAY_LENGTH);
+      gTdsVoltage = AvergeSensorSamplingArray(gTdsArray, TDS_ARRAY_LENGTH, "NULL");
       mMessage = "gTdsVoltage: ";
       mMessage.concat(gTdsVoltage);
       client.publish(MqttDebugTopic, mMessage);
@@ -774,7 +778,7 @@ void TdsCalculate() {
 // void AvergeSensorSamplingArray()
 //   Output the averge of sensor array
 // ----------------------------------------------------------------------------
-float AvergeSensorSamplingArray(float* Array, int ArrayNumber) {
+float AvergeSensorSamplingArray(float* Array, int ArrayNumber, String PublishTopic) {
   int Index;
   float Avg;
   float Amount = 0;
@@ -794,16 +798,18 @@ float AvergeSensorSamplingArray(float* Array, int ArrayNumber) {
 
   sortArray(Array, ArrayNumber);
 
-  //   Index = 0;
-  //   while (Index < ArrayNumber) {
-  //     if (Index < ArrayNumber-1) {
-  //       mMessage = mMessage + Array[Index] + ", ";
-  //     } else {
-  //       mMessage = mMessage + Array[Index];
-  //     }
-  //     Index++;
-  //   }
-  //   client.publish(MqttDebugTopic, mMessage);
+    Index = 0;
+    while (Index < ArrayNumber) {
+      if (Index < ArrayNumber-1) {
+        mMessage = mMessage + Array[Index] + ", ";
+      } else {
+        mMessage = mMessage + Array[Index];
+      }
+      Index++;
+    }
+    if (PublishTopic != "NULL") {
+      client.publish(PublishTopic, mMessage);
+    }
 
   for (Index = 1; Index < ArrayNumber - 1; Index++) {
     Amount += Array[Index];
