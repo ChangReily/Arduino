@@ -42,6 +42,9 @@ float gPhSlope;   // PHValue = slope*voltage+Offset;
 float gPhOffset;  // PHValue = slope*voltage+Offset;
 float gPh4Voltage;
 float gPh7Voltage;
+float gPhLowLimit;   // PH
+float gPhHighLimit;   // PH
+
 // const float gTargetPh = 6.7;
 
 // PH Array
@@ -145,6 +148,9 @@ void setup(void) {
     gCo2OffHour = 20;
     gCo2OffMin = 30;
 
+    gPhLowLimit = 6.5;   // PH
+    gPhHighLimit = 6.8;   // PH
+
     SaveConfig();
   }
 
@@ -240,6 +246,7 @@ void onConnectionEstablished() {
   client.subscribe("Aquarium/SetLightTimeCmd", ProcessSetLightTimeCmd);
   client.subscribe("Aquarium/ControlLightCmd", ProcessControlLightCmd);
   client.subscribe("Aquarium/SetCo2TimeCmd", ProcessSetCo2TimeCmd);
+  client.subscribe("Aquarium/SetPhLimitCmd", ProcessSetPhLimitCmd);
   client.subscribe("Aquarium/ControlCo2Cmd", ProcessControlCo2Cmd);
   client.subscribe("Aquarium/TdsCalibrateCmd", ProcessTdsCalibrateCmd);
 
@@ -251,6 +258,22 @@ void onConnectionEstablished() {
 // bool LoadConfig()
 //   Load the PH Slope and Offset from ESP8266 internal ROM by FS.h (SPIFFS.h)
 // ----------------------------------------------------------------------------
+// {
+//   "gPhSlope": "2.9999999999",
+//   "gPhOffset": "2.9999999999",
+//   "gTdsKValue": "2.9999999999",
+//   "gLightOnHour": "23",
+//   "gLightOnMin": "59",
+//   "gLightOffHour": "23",
+//   "gLightOffMin": "59",
+//   "gCo2OnHour": "23",
+//   "gCo2OnMin": "59",
+//   "gCo2OffHour": "23",
+//   "gCo2OffMin": "50",
+//   "gPhLowLimit": "6.50",
+//   "gPhHighLimit": "6.70"
+// }
+
 bool LoadConfig() {
   File ConfigFile = SPIFFS.open("/config.json", "r");
   if (!ConfigFile) {
@@ -275,7 +298,7 @@ bool LoadConfig() {
 
   // https://arduinojson.org/v5/assistant/
   // https://arduinojson.org/v5/faq/how-to-determine-the-buffer-size/
-  const int BufferSize = JSON_OBJECT_SIZE(11) + 190;
+  const int BufferSize = JSON_OBJECT_SIZE(13) + 300;
   StaticJsonBuffer<BufferSize> JsonBuffer;
   JsonObject& ConfigJson = JsonBuffer.parseObject(buf.get());
 
@@ -299,6 +322,9 @@ bool LoadConfig() {
   gCo2OffHour = ConfigJson["gCo2OffHour"];
   gCo2OffMin = ConfigJson["gCo2OffMin"];
 
+  gPhLowLimit = ConfigJson["gPhLowLimit"];
+  gPhHighLimit = ConfigJson["gPhHighLimit"];
+
   Serial.println("Load Config - ");
   Serial.print(" [PH slope]  ");
   Serial.println(gPhSlope, 5);
@@ -313,6 +339,8 @@ bool LoadConfig() {
   Serial.println("");
   Serial.println(" [Co2 ON]  " + String(gCo2OnHour) + ":" + String(gCo2OnMin));
   Serial.println(" [Co2 OFF] " + String(gCo2OffHour) + ":" + String(gCo2OffMin));
+  Serial.println("");
+  Serial.println(" [PH Limit]  " + String(gPhLowLimit) + "~" + String(gPhHighLimit));
 
   return true;
 }
@@ -324,7 +352,7 @@ bool LoadConfig() {
 bool SaveConfig() {
   // https://arduinojson.org/v5/assistant/
   // https://arduinojson.org/v5/faq/how-to-determine-the-buffer-size/
-  const int BufferSize = JSON_OBJECT_SIZE(11);
+  const int BufferSize = JSON_OBJECT_SIZE(13);
   StaticJsonBuffer<BufferSize> JsonBuffer;
 
   JsonObject& ConfigJson = JsonBuffer.createObject();
@@ -342,6 +370,9 @@ bool SaveConfig() {
   ConfigJson["gCo2OnMin"] = gCo2OnMin;
   ConfigJson["gCo2OffHour"] = gCo2OffHour;
   ConfigJson["gCo2OffMin"] = gCo2OffMin;
+  ConfigJson["gPhLowLimit"] = gPhLowLimit;
+  ConfigJson["gPhHighLimit"] = gPhHighLimit;
+
   ConfigJson.prettyPrintTo(Serial);
   Serial.println("");
 
@@ -400,7 +431,14 @@ void ProcessSendcmd(const String& topicStr, const String& message) {
                     +  "\"Co2OffMin\":" + gCo2OffMin + ", " 
                     +  "\"Co2Relay\":" + gCo2Relay + "}";
     client.publish("Aquarium/SendCo2Setting", MsgStr);
+  } else if (message.equals("RequestPhLimitSetting")) {
+    String MsgStr = "";
+    MsgStr = MsgStr + "{\"PhLowLimit\":" + gPhLowLimit + ", " 
+                    +  "\"PhHighLimit\":" + gPhHighLimit + "}";
+    client.publish("Aquarium/SendPhLimitSetting", MsgStr);
   } else {
+
+    
     client.publish(MqttDebugTopic, message);
   }
 }
@@ -416,7 +454,7 @@ void ProcessSetLightTimeCmd(const String& topicStr, const String& message) {
     return;
   }
 
-  const int BufferSize = JSON_OBJECT_SIZE(4);
+  const int BufferSize = JSON_OBJECT_SIZE(4)+60;
   StaticJsonBuffer<BufferSize> JSONbuffer;  // Declaring static JSON buffer
   JsonObject& JSONdecoder = JSONbuffer.parseObject(message);
   JSONdecoder.prettyPrintTo(Serial);
@@ -474,7 +512,7 @@ void ProcessSetCo2TimeCmd(const String& topicStr, const String& message) {
     return;
   }
 
-  const int BufferSize = JSON_OBJECT_SIZE(4);
+  const int BufferSize = JSON_OBJECT_SIZE(4)+60;
   StaticJsonBuffer<BufferSize> JSONbuffer;  // Declaring static JSON buffer
   JsonObject& JSONdecoder = JSONbuffer.parseObject(message);
   JSONdecoder.prettyPrintTo(Serial);
@@ -506,6 +544,39 @@ void ProcessSetCo2TimeCmd(const String& topicStr, const String& message) {
   client.publish(MqttDebugTopic, Msg);
   SaveConfig();
 }
+// ----------------------------------------------------------------------------
+// void ProcessSetPhLimitCmd(const String& topicStr, const String& message)
+//  3Callback function for Subscribe to "Aquarium/SendCmd"
+// ----------------------------------------------------------------------------
+void ProcessSetPhLimitCmd(const String& topicStr, const String& message) {
+  int value = 0;
+  String Msg = "";
+  // Serial.println("message received from " + topicStr + ": " + message);
+  if (message.equals("NULL")) {
+    return;
+  }
+
+  const int BufferSize = JSON_OBJECT_SIZE(2)+40;
+  StaticJsonBuffer<BufferSize> JSONbuffer;  // Declaring static JSON buffer
+  JsonObject& JSONdecoder = JSONbuffer.parseObject(message);
+  JSONdecoder.prettyPrintTo(Serial);
+  Serial.println(" ");
+
+  if (JSONdecoder.containsKey("PhLowLimit")) {
+    value = JSONdecoder["PhLowLimit"];
+    Serial.println("Set PhLowLimit: " + String(value));
+    gPhLowLimit = float(JSONdecoder["PhLowLimit"]);
+  }
+  if (JSONdecoder.containsKey("PhHighLimit")) {
+    value = JSONdecoder["PhHighLimit"];
+    Serial.println("Set PhHighLimit: " + String(value));
+    gPhHighLimit = float(JSONdecoder["PhHighLimit"]);
+  }
+  Msg = "PH Limit - " + String(gPhLowLimit) + "~" + String(gPhHighLimit);
+  client.publish(MqttDebugTopic, Msg);
+  SaveConfig();
+}
+
 // ----------------------------------------------------------------------------
 // void ProcessContorlCo2Cmd(const String& topicStr, const String& message)
 //  3Callback function for Subscribe to "Aquarium/SendCmd"
@@ -584,7 +655,8 @@ void NormalLoop() {
     // Publish PH Value
     PhVoltage = AvergeSensorSamplingArray(gPhArray, PH_ARRAY_LENGTH, "Aquanrium/DebugPh");
     gPhValue = gPhSlope * PhVoltage + gPhOffset;
-
+    //gPhValue = (random(62, 70))/10.0;
+    
     // Publish Temperature Value
     gTemperatureValue = AvergeSensorSamplingArray(gTemperatureArray, TEMPERATURE_ARRAY_LENGTH, "Aquanrium/DebugTds");
 
@@ -853,6 +925,16 @@ void Co2RelayControl() {
       digitalWrite(CO2_RELAY_PIN, HIGH);
     }
   } else {  // Button is not pressed
+    if (mCo2yStatus == true){
+      if (gPhValue < gPhLowLimit) {
+        mCo2yStatus = false;
+      } else if (gPhValue > gPhHighLimit){
+        mCo2yStatus = true;
+      } else {
+        mCo2yStatus = gCo2Relay;
+      }
+    }
+
     if (gCo2Relay != mCo2yStatus) {
       gCo2Relay = mCo2yStatus;
       if (gCo2Relay == true) {
