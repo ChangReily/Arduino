@@ -454,7 +454,7 @@ void ProcessSetLightTimeCmd(const String& topicStr, const String& message) {
     return;
   }
 
-  const int BufferSize = JSON_OBJECT_SIZE(4)+60;
+  const int BufferSize = JSON_OBJECT_SIZE(4)+70;
   StaticJsonBuffer<BufferSize> JSONbuffer;  // Declaring static JSON buffer
   JsonObject& JSONdecoder = JSONbuffer.parseObject(message);
   JSONdecoder.prettyPrintTo(Serial);
