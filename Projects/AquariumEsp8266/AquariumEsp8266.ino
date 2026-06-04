@@ -37,7 +37,7 @@ OneWire oneWire(TEMPERATURE_IN_WATER_PIN);
 DallasTemperature TemperatureInWater(&oneWire);
 
 // PH related value
-float gPhValue;   // PH
+float gPhValue = 7.0;  // PH — init to neutral to avoid false CO2 shutoff before first reading
 float gPhSlope;   // PHValue = slope*voltage+Offset;
 float gPhOffset;  // PHValue = slope*voltage+Offset;
 float gPh4Voltage;
@@ -87,7 +87,7 @@ enum Control_State {
 Control_State gState = NormalMode;
 
 // Relay time calculate
-#define CAL_TIME_SECS(Hours, Minutes, Seconds) (Hours * 60 * 60 + Minutes * 60 + Seconds)
+#define CAL_TIME_SECS(Hours, Minutes, Seconds) ((Hours) * 3600 + (Minutes) * 60 + (Seconds))
 // Relay web Control State
 enum RELAY_CONTROL_STATE { 
   FORCE_ON, 
@@ -115,8 +115,7 @@ int gCo2OffMin = 30;
 bool gCo2Relay = false;
 RELAY_CONTROL_STATE gCo2ForceControl = AUTO;
 
-// Reset function
-void (*resetFunc)(void) = 0;  // declare reset function at address 0
+// Reset function — use ESP.restart() for safe software reset
 
 // ----------------------------------------------------------------------------
 // void setup()
@@ -162,7 +161,8 @@ void setup(void) {
   // Enable debugging messages sent to serial output
   client.enableDebuggingMessages();
 
-  // Start up the Temperature
+  // Start up the Temperature (non-blocking conversion)
+  TemperatureInWater.setWaitForConversion(false);
   TemperatureInWater.begin();
 
   // Set up Ligh control GPIO pin
@@ -187,9 +187,6 @@ void setup(void) {
 //   function loop
 // ----------------------------------------------------------------------------
 void loop() {
-  if (!client.isConnected()) {
-  }
-
   if (client.isConnected()) {
     switch (gState) {
       case NormalMode:
@@ -229,13 +226,18 @@ void loop() {
 //   WARNING : YOU MUST IMPLEMENT IT IF YOU USE EspMQTTClient
 // ----------------------------------------------------------------------------
 void onConnectionEstablished() {
-  // Update NTP time and print it
-  while (gtimeClient.getEpochTime() < 1640995200) {
+  // Update NTP time — limit retries to avoid blocking MQTT indefinitely
+  int ntpRetry = 0;
+  while (gtimeClient.getEpochTime() < 1640995200 && ntpRetry < 20) {
     Serial.println("NTP Time less than 2022-01-01");
     delay(500);
     if (!gtimeClient.forceUpdate()) {
       gtimeClient.update();
     }
+    ntpRetry++;
+  }
+  if (ntpRetry >= 20) {
+    Serial.println("WARNING: NTP sync failed, continuing anyway");
   }
 
   Serial.print("MQTT Connect NTP Time: ");
@@ -373,8 +375,8 @@ bool SaveConfig() {
   ConfigJson["gPhLowLimit"] = gPhLowLimit;
   ConfigJson["gPhHighLimit"] = gPhHighLimit;
 
-  ConfigJson.prettyPrintTo(Serial);
-  Serial.println("");
+  // ConfigJson.prettyPrintTo(Serial);
+  // Serial.println("");
 
   File ConfigFile = SPIFFS.open("/config.json", "w");
   if (!ConfigFile) {
@@ -412,29 +414,28 @@ void ProcessSendcmd(const String& topicStr, const String& message) {
     client.publish(MqttDebugTopic, "Change gState to EnterTdsCalibrateMode");
     gState = EnterTdsCalibrateMode;
   } else if (message.equals("RESET")) {
-    client.publish(MqttDebugTopic, "Reset ESP32 device");
+    client.publish(MqttDebugTopic, "Reset ESP8266 device");
     delay(1000);
-    resetFunc();  // call reset
+    ESP.restart();
   } else if (message.equals("RequestLightSetting")) {
-    String MsgStr = "";
-    MsgStr = MsgStr + "{\"LightOnHour\":" + gLightOnHour + ", " 
-                    +  "\"LightOnMin\":" + gLightOnMin + ", " 
-                    +  "\"LightOffHour\":" + gLightOffHour + ", " 
-                    +  "\"LightOffMin\":" + gLightOffMin + ", " 
-                    +  "\"LightRelay\":" + gLightRelay + "}";
+    char MsgStr[80];
+    snprintf(MsgStr, sizeof(MsgStr),
+      "{\"LightOnHour\":%d,\"LightOnMin\":%d,\"LightOffHour\":%d,\"LightOffMin\":%d,\"LightRelay\":%s}",
+      gLightOnHour, gLightOnMin, gLightOffHour, gLightOffMin,
+      gLightRelay ? "true" : "false");
     client.publish("Aquarium/SendLightSetting", MsgStr);
   } else if (message.equals("RequestCo2Setting")) {
-    String MsgStr = "";
-    MsgStr = MsgStr + "{\"Co2OnHour\":" + gCo2OnHour + ", " 
-                    +  "\"Co2OnMin\":" + gCo2OnMin + ", " 
-                    +  "\"Co2OffHour\":" + gCo2OffHour + ", " 
-                    +  "\"Co2OffMin\":" + gCo2OffMin + ", " 
-                    +  "\"Co2Relay\":" + gCo2Relay + "}";
+    char MsgStr[72];
+    snprintf(MsgStr, sizeof(MsgStr),
+      "{\"Co2OnHour\":%d,\"Co2OnMin\":%d,\"Co2OffHour\":%d,\"Co2OffMin\":%d,\"Co2Relay\":%s}",
+      gCo2OnHour, gCo2OnMin, gCo2OffHour, gCo2OffMin,
+      gCo2Relay ? "true" : "false");
     client.publish("Aquarium/SendCo2Setting", MsgStr);
   } else if (message.equals("RequestPhLimitSetting")) {
-    String MsgStr = "";
-    MsgStr = MsgStr + "{\"PhLowLimit\":" + gPhLowLimit + ", " 
-                    +  "\"PhHighLimit\":" + gPhHighLimit + "}";
+    char MsgStr[48];
+    snprintf(MsgStr, sizeof(MsgStr),
+      "{\"PhLowLimit\":%.2f,\"PhHighLimit\":%.2f}",
+      gPhLowLimit, gPhHighLimit);
     client.publish("Aquarium/SendPhLimitSetting", MsgStr);
   } else {
 
@@ -447,7 +448,6 @@ void ProcessSendcmd(const String& topicStr, const String& message) {
 //  3Callback function for Subscribe to "Aquarium/SendCmd"
 // ----------------------------------------------------------------------------
 void ProcessSetLightTimeCmd(const String& topicStr, const String& message) {
-  int value = 0;
   String Msg = "";
   // Serial.println("message received from " + topicStr + ": " + message);
   if (message.equals("NULL")) {
@@ -457,28 +457,23 @@ void ProcessSetLightTimeCmd(const String& topicStr, const String& message) {
   const int BufferSize = JSON_OBJECT_SIZE(4)+70;
   StaticJsonBuffer<BufferSize> JSONbuffer;  // Declaring static JSON buffer
   JsonObject& JSONdecoder = JSONbuffer.parseObject(message);
-  JSONdecoder.prettyPrintTo(Serial);
-  Serial.println(" ");
-
+  // JSONdecoder.prettyPrintTo(Serial);
+  // Serial.println(" ");
   if (JSONdecoder.containsKey("LightOnHour")) {
-    value = JSONdecoder["LightOnHour"];
-    Serial.println("Set LightOnHour: " + String(value));
     gLightOnHour = JSONdecoder["LightOnHour"];
+    Serial.println("Set LightOnHour: " + String(gLightOnHour));
   }
   if (JSONdecoder.containsKey("LightOnMin")) {
-    value = JSONdecoder["LightOnMin"];
-    Serial.println("Set LightOnMin: " + String(value));
     gLightOnMin = JSONdecoder["LightOnMin"];
+    Serial.println("Set LightOnMin: " + String(gLightOnMin));
   }
   if (JSONdecoder.containsKey("LightOffHour")) {
-    value = JSONdecoder["LightOffHour"];
-    Serial.println("Set LightOffHour: " + String(value));
     gLightOffHour = JSONdecoder["LightOffHour"];
+    Serial.println("Set LightOffHour: " + String(gLightOffHour));
   }
   if (JSONdecoder.containsKey("LightOffMin")) {
-    value = JSONdecoder["LightOffMin"];
-    Serial.println("Set LightOffMin: " + String(value));
     gLightOffMin = JSONdecoder["LightOffMin"];
+    Serial.println("Set LightOffMin: " + String(gLightOffMin));
   }
   Msg = "Light ON  - " + String(gLightOnHour) + ":" + String(gLightOnMin);
   client.publish(MqttDebugTopic, Msg);
@@ -505,7 +500,6 @@ void ProcessControlLightCmd(const String& topicStr, const String& message) {
 //  3Callback function for Subscribe to "Aquarium/SendCmd"
 // ----------------------------------------------------------------------------
 void ProcessSetCo2TimeCmd(const String& topicStr, const String& message) {
-  int value = 0;
   String Msg = "";
   // Serial.println("message received from " + topicStr + ": " + message);
   if (message.equals("NULL")) {
@@ -515,28 +509,24 @@ void ProcessSetCo2TimeCmd(const String& topicStr, const String& message) {
   const int BufferSize = JSON_OBJECT_SIZE(4)+60;
   StaticJsonBuffer<BufferSize> JSONbuffer;  // Declaring static JSON buffer
   JsonObject& JSONdecoder = JSONbuffer.parseObject(message);
-  JSONdecoder.prettyPrintTo(Serial);
-  Serial.println(" ");
+  // JSONdecoder.prettyPrintTo(Serial);
+  // Serial.println(" ");
 
   if (JSONdecoder.containsKey("Co2OnHour")) {
-    value = JSONdecoder["Co2OnHour"];
-    Serial.println("Set Co2OnHour: " + String(value));
     gCo2OnHour = JSONdecoder["Co2OnHour"];
+    Serial.println("Set Co2OnHour: " + String(gCo2OnHour));
   }
   if (JSONdecoder.containsKey("Co2OnMin")) {
-    value = JSONdecoder["Co2OnMin"];
-    Serial.println("Set Co2OnMin: " + String(value));
     gCo2OnMin = JSONdecoder["Co2OnMin"];
+    Serial.println("Set Co2OnMin: " + String(gCo2OnMin));
   }
   if (JSONdecoder.containsKey("Co2OffHour")) {
-    value = JSONdecoder["Co2OffHour"];
-    Serial.println("Set Co2OffHour: " + String(value));
     gCo2OffHour = JSONdecoder["Co2OffHour"];
+    Serial.println("Set Co2OffHour: " + String(gCo2OffHour));
   }
   if (JSONdecoder.containsKey("Co2OffMin")) {
-    value = JSONdecoder["Co2OffMin"];
-    Serial.println("Set Co2OffMin: " + String(value));
     gCo2OffMin = JSONdecoder["Co2OffMin"];
+    Serial.println("Set Co2OffMin: " + String(gCo2OffMin));
   }
   Msg = "Co2 ON  - " + String(gCo2OnHour) + ":" + String(gCo2OnMin);
   client.publish(MqttDebugTopic, Msg);
@@ -549,7 +539,6 @@ void ProcessSetCo2TimeCmd(const String& topicStr, const String& message) {
 //  3Callback function for Subscribe to "Aquarium/SendCmd"
 // ----------------------------------------------------------------------------
 void ProcessSetPhLimitCmd(const String& topicStr, const String& message) {
-  int value = 0;
   String Msg = "";
   // Serial.println("message received from " + topicStr + ": " + message);
   if (message.equals("NULL")) {
@@ -559,18 +548,16 @@ void ProcessSetPhLimitCmd(const String& topicStr, const String& message) {
   const int BufferSize = JSON_OBJECT_SIZE(2)+40;
   StaticJsonBuffer<BufferSize> JSONbuffer;  // Declaring static JSON buffer
   JsonObject& JSONdecoder = JSONbuffer.parseObject(message);
-  JSONdecoder.prettyPrintTo(Serial);
-  Serial.println(" ");
+  // JSONdecoder.prettyPrintTo(Serial);
+  // Serial.println(" ");
 
   if (JSONdecoder.containsKey("PhLowLimit")) {
-    value = JSONdecoder["PhLowLimit"];
-    Serial.println("Set PhLowLimit: " + String(value));
-    gPhLowLimit = float(JSONdecoder["PhLowLimit"]);
+    gPhLowLimit = (float)JSONdecoder["PhLowLimit"];  // 修正：使用 float 避免截斷小數
+    Serial.println("Set PhLowLimit: " + String(gPhLowLimit));
   }
   if (JSONdecoder.containsKey("PhHighLimit")) {
-    value = JSONdecoder["PhHighLimit"];
-    Serial.println("Set PhHighLimit: " + String(value));
-    gPhHighLimit = float(JSONdecoder["PhHighLimit"]);
+    gPhHighLimit = (float)JSONdecoder["PhHighLimit"];  // 修正：使用 float 避免截斷小數
+    Serial.println("Set PhHighLimit: " + String(gPhHighLimit));
   }
   Msg = "PH Limit - " + String(gPhLowLimit) + "~" + String(gPhHighLimit);
   client.publish(MqttDebugTopic, Msg);
@@ -600,14 +587,12 @@ void NormalLoop() {
   unsigned long CurrentMillis = millis();
   static unsigned long Loop5secPreviousMillis = 0;
   static unsigned long Loop1minPreviousMillis = 0;
-  static float PhVoltage, mTdsVoltage;
   int16_t adc0, adc1;
-  float volts0, volts1, mEcValue, mEcValue25;
+  float volts0, volts1;
 
   if (CurrentMillis - Loop5secPreviousMillis >= 5000) {
     Loop5secPreviousMillis = CurrentMillis;
-    String Str = gtimeClient.getFormattedTime() + " --- Loop_5_Sec()";
-    // client.publish(MqttDebugTopic, Str);
+    char dbgStr[48];
     gtimeClient.update();
     LightRelayControl();
     Co2RelayControl();
@@ -616,9 +601,8 @@ void NormalLoop() {
     adc0 = gAds1115.readADC_SingleEnded(0);
     volts0 = gAds1115.computeVolts(adc0);
     gPhArray[gPhArrayIndex] = volts0;
-    Str = "PhArray[" + String(gPhArrayIndex) + "] = "+ volts0;
-    client.publish("Aquarium/DebugPh", Str);
-    // gPhArray[gPhArrayIndex] = random(0, 100);
+    snprintf(dbgStr, sizeof(dbgStr), "PhArray[%d] = %.4f", gPhArrayIndex, volts0);
+    client.publish("Aquarium/DebugPh", dbgStr);
     gPhArrayIndex++;
     if (gPhArrayIndex == PH_ARRAY_LENGTH) {
       gPhArrayIndex = 0;
@@ -628,9 +612,8 @@ void NormalLoop() {
     adc1 = gAds1115.readADC_SingleEnded(1);
     volts1 = gAds1115.computeVolts(adc1);
     gTdsArray[gTdsArrayIndex] = volts1;
-    Str = "TdsArray[" + String(gTdsArrayIndex) + "] = "+ volts1;
-    client.publish("Aquarium/DebugTds", Str);
-    // gTdsArray[gTdsArrayIndex] = random(0, 100);
+    snprintf(dbgStr, sizeof(dbgStr), "TdsArray[%d] = %.4f", gTdsArrayIndex, volts1);
+    client.publish("Aquarium/DebugTds", dbgStr);
     gTdsArrayIndex++;
     if (gTdsArrayIndex == TDS_ARRAY_LENGTH) {
       gTdsArrayIndex = 0;
@@ -643,32 +626,33 @@ void NormalLoop() {
     if (gTemperatureArrayIndex == TEMPERATURE_ARRAY_LENGTH) {
       gTemperatureArrayIndex = 0;
     }
-    Serial.println ("[PH][A0] ADC: "+ String(adc1) + ", Voltage: " + String(volts1) + " V.   [TDS][A1] ADC: "+ String(adc0) + ", Voltage: " + String(volts0)+ " V");
+    Serial.printf("[PH][A0] ADC: %d, Voltage: %.4f V.   [TDS][A1] ADC: %d, Voltage: %.4f V\n", adc0, volts0, adc1, volts1);
   
   }
 
   if (CurrentMillis - Loop1minPreviousMillis >= 60000) {
     Loop1minPreviousMillis = CurrentMillis;
-    String Str = gtimeClient.getFormattedTime() + " --- Loop_1_min()";
-    // client.publish(MqttDebugTopic, Str);
 
     // Publish PH Value
-    PhVoltage = AvergeSensorSamplingArray(gPhArray, PH_ARRAY_LENGTH, "Aquanrium/DebugPh");
-    gPhValue = gPhSlope * PhVoltage + gPhOffset;
-    //gPhValue = (random(62, 70))/10.0;
-    
-    // Publish Temperature Value
-    gTemperatureValue = AvergeSensorSamplingArray(gTemperatureArray, TEMPERATURE_ARRAY_LENGTH, "Aquanrium/DebugTds");
+    float phVoltage = AvergeSensorSamplingArray(gPhArray, PH_ARRAY_LENGTH, "Aquarium/DebugPh");
+    gPhValue = gPhSlope * phVoltage + gPhOffset;
 
-    // Publish TDS Value
-    mTdsVoltage = AvergeSensorSamplingArray(gTdsArray, TDS_ARRAY_LENGTH, "Aquanrium/DebugTemp");
-    mEcValue = (133.42 * mTdsVoltage * mTdsVoltage * mTdsVoltage - 255.86 * mTdsVoltage * mTdsVoltage + 857.39 * mTdsVoltage) * gTdsKValue;
-    mEcValue25 = mEcValue / (1.0 + 0.02 * (gTemperatureValue - 25.0));  // temperature compensation
+    // Publish Temperature Value
+    gTemperatureValue = AvergeSensorSamplingArray(gTemperatureArray, TEMPERATURE_ARRAY_LENGTH, "Aquarium/DebugTemp");
+
+    // Publish TDS Value (Horner's method for cubic polynomial)
+    float tdsVoltage = AvergeSensorSamplingArray(gTdsArray, TDS_ARRAY_LENGTH, "Aquarium/DebugTds");
+    float mEcValue = tdsVoltage * (tdsVoltage * (133.42f * tdsVoltage - 255.86f) + 857.39f) * gTdsKValue;
+    float mEcValue25 = mEcValue / (1.0f + 0.02f * (gTemperatureValue - 25.0f));  // temperature compensation
     gTdsValue = mEcValue25 * gTdsFactor;
 
     // Publish
-    String MsgStr = "";
-    MsgStr = MsgStr + "{\"temp\":" + gTemperatureValue + ", " + "\"ph\":" + gPhValue + ", " + "\"tds\":" + gTdsValue + ", " + "\"light\":" + gLightRelay + ", " + "\"co2\":" + gCo2Relay + "}";
+    char MsgStr[96];
+    snprintf(MsgStr, sizeof(MsgStr),
+      "{\"temp\":%.2f,\"ph\":%.2f,\"tds\":%.1f,\"light\":%s,\"co2\":%s}",
+      gTemperatureValue, gPhValue, gTdsValue,
+      gLightRelay ? "true" : "false",
+      gCo2Relay ? "true" : "false");
     client.publish("Aquarium/SendData", MsgStr);
   }
 }
@@ -749,8 +733,13 @@ void PhCalculate() {
   // V4*S + O = 4
   // S = (7-4) / (V7-V4)
   // O =  7 - V7*S
-  gPhSlope = (7 - 4) / (gPh7Voltage - gPh4Voltage);
-  gPhOffset = 7 - gPhSlope * gPh7Voltage;
+  if (abs(gPh7Voltage - gPh4Voltage) < 0.01) {
+    client.publish(MqttDebugTopic, "ERROR: PH4/PH7 voltages too close, calibration aborted!");
+    gState = NormalMode;
+    return;
+  }
+  gPhSlope = (7.0f - 4.0f) / (gPh7Voltage - gPh4Voltage);
+  gPhOffset = 7.0f - gPhSlope * gPh7Voltage;
 
   client.publish(MqttDebugTopic, "gPh4Voltage: " + String(gPh4Voltage));
   client.publish(MqttDebugTopic, "gPh7Voltage: " + String(gPh7Voltage));
@@ -793,7 +782,7 @@ void TdsCalibrateLoop() {
     float volts1;
     adc1 = gAds1115.readADC_SingleEnded(1);
     volts1 = gAds1115.computeVolts(adc1);
-    mTdsVoltageRead = adc1;
+    mTdsVoltageRead = volts1;  // 修正：使用電壓值而非原始 ADC 整數值
     // mTdsVoltageRead = random(0, 100);
 
     // Publish the message
@@ -836,9 +825,15 @@ void TdsCalculate() {
   float mTargetEc;
 
   mTargetEc = gCalibrateTdsTarget / gTdsFactor;
-  mTargetEc = mTargetEc * (1.0 + 0.02 * (gTemperatureValue - 25.0));
+  mTargetEc = mTargetEc * (1.0f + 0.02f * (gTemperatureValue - 25.0f));
 
-  gTdsKValue = mTargetEc / (133.42 * gTdsVoltage * gTdsVoltage * gTdsVoltage - 255.86 * gTdsVoltage * gTdsVoltage + 857.39 * gTdsVoltage);
+  float mDenominator = gTdsVoltage * (gTdsVoltage * (133.42f * gTdsVoltage - 255.86f) + 857.39f);
+  if (abs(mDenominator) < 0.001) {
+    client.publish(MqttDebugTopic, "ERROR: TDS voltage too low, calibration aborted!");
+    gState = NormalMode;
+    return;
+  }
+  gTdsKValue = mTargetEc / mDenominator;
   client.publish(MqttDebugTopic, "gTdsKValue: " + String(gTdsKValue));
   client.publish(MqttDebugTopic, "TDS Calibrating Done..");
   SaveConfig();
@@ -850,44 +845,25 @@ void TdsCalculate() {
 // void AvergeSensorSamplingArray()
 //   Output the averge of sensor array
 // ----------------------------------------------------------------------------
-float AvergeSensorSamplingArray(float* Array, int ArrayNumber, String PublishTopic) {
-  int Index;
-  float Avg;
-  float Amount = 0;
-  String mMessage = "";
-
-  // mMessage = "Before Sort: ";
-  // Index = 0;
-  // while (Index < ArrayNumber) {
-  //   if (Index < ArrayNumber-1) {
-  //     mMessage = mMessage + Array[Index] + ", ";
-  //   } else {
-  //     mMessage = mMessage + Array[Index];
-  //   }
-  //   Index++;
-  // }
-  // client.publish(MqttDebugTopic, mMessage);
+float AvergeSensorSamplingArray(float* Array, int ArrayNumber, const char* publishTopic) {
+  float amount = 0;
 
   sortArray(Array, ArrayNumber);
 
-    Index = 0;
-    while (Index < ArrayNumber) {
-      if (Index < ArrayNumber-1) {
-        mMessage = mMessage + Array[Index] + ", ";
-      } else {
-        mMessage = mMessage + Array[Index];
-      }
-      Index++;
+  if (publishTopic != nullptr && strcmp(publishTopic, "NULL") != 0) {
+    String mMessage;
+    mMessage.reserve(ArrayNumber * 8);
+    for (int i = 0; i < ArrayNumber; i++) {
+      mMessage += String(Array[i]);
+      if (i < ArrayNumber - 1) mMessage += ", ";
     }
-    if (PublishTopic != "NULL") {
-      client.publish(PublishTopic, mMessage);
-    }
-
-  for (Index = 1; Index < ArrayNumber - 1; Index++) {
-    Amount += Array[Index];
+    client.publish(publishTopic, mMessage);
   }
-  Avg = (float)Amount / (ArrayNumber - 2);
-  return Avg;
+
+  for (int i = 1; i < ArrayNumber - 1; i++) {
+    amount += Array[i];
+  }
+  return amount / (ArrayNumber - 2);
 }
 
 // ----------------------------------------------------------------------------
